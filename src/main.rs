@@ -4,17 +4,21 @@ extern crate env_logger;
 extern crate serde;
 #[macro_use]
 extern crate serde_derive;
+extern crate bytes;
 
 use serial::prelude::*;
 use docopt::Docopt;
+use std::io;
+use std::time::Duration;
+use bytes::{BytesMut, BufMut};
 
 const USAGE: &'static str = "
-relaise8x
+relais8x
 
 Usage:
-  relaise8x connect --dev=<dev> --relaise=<relaise>
-  relaise8x (-h | --help)
-  relaise8x (-v | --version)
+  relais8x --dev=<dev> [--relais=<relais>]
+  relais8x (-h | --help)
+  relais8x (-v | --version)
   
 Commands:
   connect   connect to device and toggle relaise
@@ -28,7 +32,7 @@ Options:
 
 #[derive(Debug, Deserialize)]
 struct Args {
-    cmd_connect: bool,
+    //cmd_connect: bool,
     flag_dev: String,
     flag_relaise: String,
     flag_version: bool,
@@ -44,7 +48,7 @@ fn main() {
 
     let args: Args = Docopt::new(USAGE)
         .and_then(|d| d.deserialize())
-        .unwrap_or_else(|e| e.exit());
+        .unwrap_or_else(|e| e.exit());  
 
     // check arguments
     if args.flag_version {
@@ -53,4 +57,36 @@ fn main() {
         println!("{}", USAGE);
     }
 
+    let device_name = format!("/dev/{}", args.flag_dev);
+    let mut port = serial::open(&device_name).unwrap();
+    interact(&mut port).unwrap();
+    
+
+}
+
+fn interact<T: SerialPort>(port: &mut T) -> io::Result<()> {
+    try!(port.reconfigure(&|settings| {
+        try!(settings.set_baud_rate(serial::Baud19200));
+        settings.set_char_size(serial::Bits8);
+        settings.set_parity(serial::ParityNone);
+        settings.set_stop_bits(serial::Stop1);
+        settings.set_flow_control(serial::FlowNone);
+        Ok(())
+    }));
+
+    try!(port.set_timeout(Duration::from_millis(1000)));
+
+    let mut buf =  BytesMut::with_capacity(4);
+    buf.put_u8(8);
+    buf.put_u8(1);
+    buf.put_u8(1);
+    buf.put_u8(8 ^ 1 ^ 1);
+
+    println!("command: {:?}", buf);
+
+    try!(port.write(&buf[..]));
+    try!(port.read(&mut buf[..]));
+    println!("response: {:?}", buf);
+
+    Ok(())
 }
