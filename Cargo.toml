@@ -1,0 +1,6 @@
+[package]
+name = "relaise8x"
+version = "0.1.0"
+authors = ["Korbinian Maier <korbinian.maier@tum.de>"]
+
+[dependencies]
