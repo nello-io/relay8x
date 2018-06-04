@@ -1,40 +1,49 @@
 extern crate serial;
+extern crate serial_unix;
 extern crate docopt;
 extern crate env_logger;
 extern crate serde;
 #[macro_use]
 extern crate serde_derive;
 extern crate bytes;
+#[macro_use]
+extern crate log;
 
 use serial::prelude::*;
 use docopt::Docopt;
 use std::io;
-use std::time::Duration;
 use bytes::{BytesMut, BufMut};
+
+mod connect;
+use connect::*;
 
 const USAGE: &'static str = "
 relais8x
 
 Usage:
-  relais8x --dev=<dev> [--relais=<relais>]
+  relais8x set --dev=<dev> [--relay=<relay>] on
+  relais8x set --dev=<dev> [--relay=<relay>] off
+  relais8x reset --dev=<dev>
   relais8x (-h | --help)
   relais8x (-v | --version)
   
 Commands:
-  connect   connect to device and toggle relaise
+  set   set specified relay on or off, if no relay number is given all relays are set
+  toggle    toggle specified relay,  if no relay number is given all relays are toggeled
 
 Options:
   -h --help     Show this screen.
   -v --version     Show version.
-  --dev=<dev>   name of serial device (TTYxx)
-  --relaise=<relaise>   address of relaise (1..8)
+  --dev=<dev>   name of serial device (TTYxxxx)
+  --relay=<relay>   address of relay (1..8)
 ";
 
 #[derive(Debug, Deserialize)]
 struct Args {
-    //cmd_connect: bool,
+    cmd_set: bool,
+    cmd_toggle: bool,
     flag_dev: String,
-    flag_relaise: String,
+    flag_relay: u8,
     flag_version: bool,
     flag_help: bool,
 }
@@ -55,38 +64,12 @@ fn main() {
         println!("{}: {}", NAME, VERSION);
     } else if args.flag_help {
         println!("{}", USAGE);
+    } else if args.cmd_set {
+        // open device, address of relay is always 1 as for now
+        let relay = Relay8x::new(args.flag_dev, 1);
+        relay.init_device();
+
+
     }
-
-    let device_name = format!("/dev/{}", args.flag_dev);
-    let mut port = serial::open(&device_name).unwrap();
-    interact(&mut port).unwrap();
-    
-
 }
 
-fn interact<T: SerialPort>(port: &mut T) -> io::Result<()> {
-    try!(port.reconfigure(&|settings| {
-        try!(settings.set_baud_rate(serial::Baud19200));
-        settings.set_char_size(serial::Bits8);
-        settings.set_parity(serial::ParityNone);
-        settings.set_stop_bits(serial::Stop1);
-        settings.set_flow_control(serial::FlowNone);
-        Ok(())
-    }));
-
-    try!(port.set_timeout(Duration::from_millis(1000)));
-
-    let mut buf =  BytesMut::with_capacity(4);
-    buf.put_u8(8);
-    buf.put_u8(1);
-    buf.put_u8(1);
-    buf.put_u8(8 ^ 1 ^ 1);
-
-    println!("command: {:?}", buf);
-
-    try!(port.write(&buf[..]));
-    try!(port.read(&mut buf[..]));
-    println!("response: {:?}", buf);
-
-    Ok(())
-}

@@ -10,4 +10,6 @@ env_logger = "0.5.10"
 serde = "1.0.66"
 serde_derive = "1.0.66"
 bytes = "0.4.8"
+serial-unix = "0.4.0"
+log = "0.4.1"
 
