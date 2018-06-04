@@ -4,3 +4,9 @@ version = "0.1.0"
 authors = ["Korbinian Maier <korbinian.maier@tum.de>"]
 
 [dependencies]
+serial = "0.4.0"
+docopt = "1.0.0"
+env_logger = "0.5.10"
+serde = "1.0.66"
+serde_derive = "1.0.66"
+
