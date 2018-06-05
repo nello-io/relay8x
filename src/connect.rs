@@ -82,9 +82,36 @@ impl Relay8x {
         Ok(())
     }
 
-    /// 
-    /// 
-    //pub fn set_relays(&self, numbers: Vec<u8>, state: bool) -> io::Result<()> {
+    /// switch more than one relay on or off
+    /// numbers: Vector containing all relay numbers (1..8)
+    /// state; true for switching on, false for off
+    pub fn set_relays(&self, numbers: Vec<u8>, state: bool) -> io::Result<()> {
+         let mut cmd = BytesMut::with_capacity(4);
+         let on_off = if state { // on
+            6
+        } else { // off
+            7
+        };
+        cmd.put_u8(on_off);
+        cmd.put_u8(self.address);
+        let mut relay_bin = 0b00000000;
+        numbers.iter().for_each(|x| {
+            relay_bin <<= x;
+        });
+        cmd.put_u8(relay_bin);
+        cmd.put_u8(on_off ^ self.address ^ relay_bin);
 
-    //}
+        println!("{:?} => {:b}", numbers, relay_bin);
+
+        self.port.write(&cmd[..])?;
+
+        Ok(())
+    }
+
+    pub fn toggle_relays(&self, numbers: Vec<u8>) -> io::Result<()> {
+        let mut cmd = BytesMut::with_capacity(4);
+        // toggle is command no 8
+        cmd.put_u8(8); 
+        cmd.put_u8
+    }
 }
