@@ -14,7 +14,7 @@ impl Relay8x {
 
     /// constructor for a new Relay Card
     pub fn new(device_name: String, address: u8) -> io::Result<Self> {
-        let device_name = format!("/dev/{}", device_name);
+        
         Ok(Self {
             port: Rc::new(::serial::open(&device_name)?),
             device_name: device_name,
@@ -35,10 +35,12 @@ impl Relay8x {
         cmd.put_u8(0);  // third: dont care
         cmd.put_u8(cmd_no ^ self.address ^ 0); // fourth: XOR
 
+
+        println!("address {}", self.address);
         port.write(&cmd[..])?;
 
         port.read(&mut cmd[..])?;
-        debug!("Response: {:?}", cmd);
+        println!("Response init: {:?}", cmd);
         // TODO return response and check if ok
 
         Ok(())
@@ -102,14 +104,18 @@ impl Relay8x {
         cmd.put_u8(self.address);
         let mut relay_bin = 0b00000000;
         numbers.iter().rev().for_each(|x| {
-            relay_bin <<= x;
+            relay_bin |= (1 << (x-1)) as u8;
         });
         cmd.put_u8(relay_bin);
         cmd.put_u8(on_off ^ self.address ^ relay_bin);
 
-        println!("{:?} => {:b}", numbers, relay_bin);
+        println!("{:?} => {:08b}", numbers, relay_bin);
+        println!("{:?}", cmd);
 
         port.write(&cmd[..])?;
+        port.read(&mut cmd[..])?;
+
+        println!("response: {:?}", cmd);
         // TODO check the repsonse
 
         Ok(())
@@ -122,14 +128,20 @@ impl Relay8x {
         // toggle is command no 8
         cmd.put_u8(8); 
         cmd.put_u8(self.address);
-        let mut relay_bin = 0b00000000;
+        let mut relay_bin = 0;
         numbers.iter().rev().for_each(|x| {
-            relay_bin <<= x;
+            relay_bin |= (1 << (x-1)) as u8;
         });
         cmd.put_u8(relay_bin);
         cmd.put_u8(8 ^ self.address ^ relay_bin);
 
+        println!("{:?} => {:08b}", numbers, relay_bin);
+        println!("command {:?}", cmd);
+
         port.write(&cmd[..])?;
+        port.read(&mut cmd[..])?;
+
+        println!("response: {:?}", cmd);
         // check the response
 
         Ok(())
