@@ -109,7 +109,6 @@ impl Relay8x {
 
         println!("{:?} => {:b}", numbers, relay_bin);
 
-
         port.write(&cmd[..])?;
         // TODO check the repsonse
 
@@ -118,7 +117,7 @@ impl Relay8x {
 
     pub fn toggle_relays(&mut self, numbers: Vec<u8>) -> io::Result<()> {
         let port = Rc::get_mut(&mut self.port).unwrap();
-        
+
         let mut cmd = BytesMut::with_capacity(4);
         // toggle is command no 8
         cmd.put_u8(8); 

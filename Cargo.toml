@@ -12,4 +12,5 @@ serde_derive = "1.0.66"
 bytes = "0.4.8"
 serial-unix = "0.4.0"
 log = "0.4.1"
+common_failures = "0.1.1"
 
