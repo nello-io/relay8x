@@ -13,6 +13,7 @@ pub struct Relay8x {
 
 impl Relay8x {
 
+    /// constructor for a new Relay Card
     pub fn new(device_name: String, address: u8) -> Self {
         let device_name = format!("/dev/{}", device_name);
         Self {
@@ -22,6 +23,8 @@ impl Relay8x {
         }
     }
 
+    /// initialise device with correct params
+    /// sets device address, function can be used to re-set it
     pub fn init_device(&self) -> io::Result<()> {
         self.configure_port()?;
         // init relaycard
@@ -41,6 +44,7 @@ impl Relay8x {
         Ok(())
     }
 
+    /// private function for port settings
     fn configure_port(&self) -> io::Result<()> {
         
         self.port.reconfigure(&|settings| {
@@ -57,9 +61,12 @@ impl Relay8x {
         Ok(())
     }
 
+    /// switch one relay on or off
+    /// number: 1..8 corresponding to relays X1 to X8 on the board
+    /// state: true for switching on, false for off
     pub fn set_relay(&self, number: u8, state: bool) -> io::Result<()> {
+        // cmd message has 4 bytes
         let mut cmd = BytesMut::with_capacity(4);
-
         let on_off = if state { // on
             6
         } else { // off
@@ -74,4 +81,10 @@ impl Relay8x {
 
         Ok(())
     }
+
+    /// 
+    /// 
+    //pub fn set_relays(&self, numbers: Vec<u8>, state: bool) -> io::Result<()> {
+
+    //}
 }
