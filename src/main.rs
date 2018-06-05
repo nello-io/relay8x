@@ -34,7 +34,7 @@ Commands:
 Options:
   -h --help     Show this screen.
   -v --version     Show version.
-  --dev=<dev>   name of serial device (TTYxxxx)
+  --dev=<dev>   path to serial device, e.g. /dev/TTYUSB0
   --relay=<relay>   address of relay (1..8)
 ";
 
