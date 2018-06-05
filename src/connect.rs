@@ -78,6 +78,7 @@ impl Relay8x {
         cmd.put_u8(on_off ^ self.address ^ number);
 
         self.port.write(&cmd[..])?;
+        // TODO check response
 
         Ok(())
     }
@@ -95,7 +96,7 @@ impl Relay8x {
         cmd.put_u8(on_off);
         cmd.put_u8(self.address);
         let mut relay_bin = 0b00000000;
-        numbers.iter().for_each(|x| {
+        numbers.iter().rev().for_each(|x| {
             relay_bin <<= x;
         });
         cmd.put_u8(relay_bin);
@@ -104,6 +105,7 @@ impl Relay8x {
         println!("{:?} => {:b}", numbers, relay_bin);
 
         self.port.write(&cmd[..])?;
+        // TODO check the repsonse
 
         Ok(())
     }
@@ -112,6 +114,17 @@ impl Relay8x {
         let mut cmd = BytesMut::with_capacity(4);
         // toggle is command no 8
         cmd.put_u8(8); 
-        cmd.put_u8
+        cmd.put_u8(self.address);
+        let mut relay_bin = 0b00000000;
+        numbers.iter().rev().for_each(|x| {
+            relay_bin <<= x;
+        });
+        cmd.put_u8(relay_bin);
+        cmd.put_u8(8 ^ self.address ^ relay_bin);
+
+        self.port.write(&cmd[..])?;
+        // check the response
+
+        Ok(())
     }
 }
