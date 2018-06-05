@@ -1,5 +1,4 @@
 extern crate serial;
-extern crate serial_unix;
 extern crate docopt;
 extern crate env_logger;
 extern crate serde;
@@ -8,11 +7,14 @@ extern crate serde_derive;
 extern crate bytes;
 #[macro_use]
 extern crate log;
+#[macro_use]
+extern crate common_failures;
 
 use docopt::Docopt;
+use common_failures::prelude::*;
 
 mod connect;
-use connect::*;
+use connect::Relay8x;
 
 const USAGE: &'static str = "
 relais8x
@@ -51,7 +53,7 @@ struct Args {
 const VERSION: &'static str = env!("CARGO_PKG_VERSION");
 const NAME: &'static str = env!("CARGO_PKG_NAME");
 
-fn main() {
+fn run() -> Result<()> {
 
     env_logger::init();
 
@@ -62,12 +64,14 @@ fn main() {
     // check arguments
     if args.flag_version {
         println!("{}: {}", NAME, VERSION);
+        Ok(())
     } else if args.flag_help {
         println!("{}", USAGE);
+        Ok(())
     } else if args.cmd_set {
         // open device, address of relay is always 1 as for now
-        let relay = Relay8x::new(args.flag_dev, 1);
-        relay.init_device();
+        let mut relay = Relay8x::new(args.flag_dev, 1)?;
+        relay.init_device()?;
         // map state argument to bool, use false as default
         let state = match args.arg_state.as_ref() {
             "on" => true,
@@ -83,12 +87,13 @@ fn main() {
             args.flag_relay.unwrap()
         };
         // do the switching
-        relay.set_relays(relay_numbers, state);
+        relay.set_relays(relay_numbers, state)?;
+        Ok(())
 
     } else if args.cmd_toggle {
         // open device
-        let relay = Relay8x::new(args.flag_dev, 1);
-        relay.init_device();
+        let mut relay = Relay8x::new(args.flag_dev, 1)?;
+        relay.init_device()?;
         // if flag is none, all relays should be toggeled
         let relay_numbers = if args.flag_relay.is_none() {
             vec![1,2,3,4,5,6,7,8]
@@ -96,11 +101,12 @@ fn main() {
             args.flag_relay.unwrap()
         };
         // do the toggle
-        relay.toggle_relays(relay_numbers);
+        relay.toggle_relays(relay_numbers)?;
+        Ok(())
     } else if args.cmd_reset {
         // open device
-        let relay = Relay8x::new(args.flag_dev, 1);
-        relay.init_device();
+        let mut relay = Relay8x::new(args.flag_dev, 1)?;
+        relay.init_device()?;
         // if flag is none, all relays should be reset
         let relay_numbers = if args.flag_relay.is_none() {
             vec![1,2,3,4,5,6,7,8]
@@ -108,8 +114,13 @@ fn main() {
             args.flag_relay.unwrap()
         };
         // do the switching
-        relay.set_relays(relay_numbers, false);
+        relay.set_relays(relay_numbers, false)?;
+        Ok(())
+    } else {
+        println!("I don't know what you want..");
+        Ok(())
     }
 }
 
 
+quick_main!(run);
