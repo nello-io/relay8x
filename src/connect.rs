@@ -10,6 +10,7 @@ pub struct Relay8x {
     port: Rc<SerialPort>,
 }
 
+// TODO put initialisation into each function and don't do it in main
 impl Relay8x {
 
     /// constructor for a new Relay Card
@@ -145,5 +146,15 @@ impl Relay8x {
         // check the response
 
         Ok(())
+    }
+}
+
+
+#[cfg(test)]
+mod test {
+    #[test]
+    fn connect_to_card() {    
+        let relay = Relay8x::new(String::from("/dev/ttyUSB0"), 1)?;
+        relay.init_device()?;
     }
 }
