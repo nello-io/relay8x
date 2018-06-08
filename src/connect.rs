@@ -25,7 +25,7 @@ impl Relay8x {
 
     /// initialise device with correct params
     /// sets device address, function can be used to re-set it
-    pub fn init_device(&mut self) -> io::Result<()> {
+    pub fn init_device(&mut self) -> io::Result<BytesMut> {
         self.configure_port()?;
         let port = Rc::get_mut(&mut self.port).unwrap();
         // init relaycard
@@ -37,14 +37,13 @@ impl Relay8x {
         cmd.put_u8(cmd_no ^ self.address ^ 0); // fourth: XOR
 
 
-        println!("address {}", self.address);
+        debug!("Init command: {}", self.address);
         port.write(&cmd[..])?;
 
         port.read(&mut cmd[..])?;
-        println!("Response init: {:?}", cmd);
-        // TODO return response and check if ok
-
-        Ok(())
+        debug!("Response init: {:?}", cmd);
+        
+        Ok(cmd)
     }
 
     /// private function for port settings
@@ -68,7 +67,7 @@ impl Relay8x {
     /// switch one relay on or off
     /// number: 1..8 corresponding to relays X1 to X8 on the board
     /// state: true for switching on, false for off
-    pub fn set_relay(&mut self, number: u8, state: bool) -> io::Result<()> {
+    pub fn set_relay(&mut self, number: u8, state: bool) -> io::Result<BytesMut> {
         let port = Rc::get_mut(&mut self.port).unwrap();
 
         // cmd message has 4 bytes
@@ -84,15 +83,16 @@ impl Relay8x {
         cmd.put_u8(on_off ^ self.address ^ number);
 
         port.write(&cmd[..])?;
-        // TODO check response
+        port.read(&mut cmd[..])?;
+        debug!("Set Relay response: {:?}", cmd);
 
-        Ok(())
+        Ok(cmd)
     }
 
     /// switch more than one relay on or off
     /// numbers: Vector containing all relay numbers (1..8)
     /// state; true for switching on, false for off
-    pub fn set_relays(&mut self, numbers: Vec<u8>, state: bool) -> io::Result<()> {
+    pub fn set_relays(&mut self, numbers: Vec<u8>, state: bool) -> io::Result<BytesMut> {
         let port = Rc::get_mut(&mut self.port).unwrap();
         
         let mut cmd = BytesMut::with_capacity(4);
@@ -110,19 +110,17 @@ impl Relay8x {
         cmd.put_u8(relay_bin);
         cmd.put_u8(on_off ^ self.address ^ relay_bin);
 
-        println!("{:?} => {:08b}", numbers, relay_bin);
-        println!("{:?}", cmd);
+        debug!("{:?} => {:08b}", numbers, relay_bin);
+        debug!("{:?}", cmd);
 
         port.write(&cmd[..])?;
         port.read(&mut cmd[..])?;
+        debug!("Set Relays response: {:?}", cmd);
 
-        println!("response: {:?}", cmd);
-        // TODO check the repsonse
-
-        Ok(())
+        Ok(cmd)
     }
 
-    pub fn toggle_relays(&mut self, numbers: Vec<u8>) -> io::Result<()> {
+    pub fn toggle_relays(&mut self, numbers: Vec<u8>) -> io::Result<BytesMut> {
         let port = Rc::get_mut(&mut self.port).unwrap();
 
         let mut cmd = BytesMut::with_capacity(4);
@@ -136,25 +134,28 @@ impl Relay8x {
         cmd.put_u8(relay_bin);
         cmd.put_u8(8 ^ self.address ^ relay_bin);
 
-        println!("{:?} => {:08b}", numbers, relay_bin);
-        println!("command {:?}", cmd);
+        debug!("{:?} => {:08b}", numbers, relay_bin);
+        debug!("command {:?}", cmd);
 
         port.write(&cmd[..])?;
         port.read(&mut cmd[..])?;
 
-        println!("response: {:?}", cmd);
-        // check the response
-
-        Ok(())
+        debug!("response: {:?}", cmd);
+        
+        Ok(cmd)
     }
 }
 
 
 #[cfg(test)]
 mod test {
+    use super::*;
+
     #[test]
     fn connect_to_card() {    
-        let relay = Relay8x::new(String::from("/dev/ttyUSB0"), 1)?;
-        relay.init_device()?;
+        let mut relay = Relay8x::new(String::from("/dev/ttyUSB0"), 1).expect("Failed to connect to device");
+        let init_response = relay.init_device().expect("Failed to init device");
+        let expected_res = BytesMut::from(vec![254, relay.address, 254, 254^relay.address^254]);
+        assert_eq!(init_response, expected_res);
     }
 }
