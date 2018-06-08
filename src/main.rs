@@ -20,9 +20,9 @@ const USAGE: &'static str = "
 relais8x
 
 Usage:
-  relais8x set --dev=<dev> [--relay=<relay>] <state>
-  relais8x toggle --dev=<dev> [--relay=<relay>]
-  relais8x reset --dev=<dev> [--relay=<relay>]
+  relais8x set --dev=<dev> [<relay>...] <state>
+  relais8x toggle --dev=<dev> [<relay>...]
+  relais8x reset --dev=<dev> [<relay>...]
   relais8x (-h | --help)
   relais8x (-v | --version)
   
@@ -35,7 +35,7 @@ Options:
   -h --help     Show this screen.
   -v --version     Show version.
   --dev=<dev>   path to serial device, e.g. /dev/TTYUSB0
-  --relay=<relay>   address of relay (1..8)
+  <relay>   address of relays (1..8) parsed as row of numbers
 ";
 
 #[derive(Debug, Deserialize)]
@@ -44,9 +44,9 @@ struct Args {
     cmd_toggle: bool,
     cmd_reset: bool,
     flag_dev: String,
-    flag_relay: Option<Vec<u8>>,
     flag_version: bool,
     flag_help: bool,
+    arg_relay: Option<Vec<u8>>,
     arg_state: String,
 }
 
@@ -81,10 +81,10 @@ fn run() -> Result<()> {
                 false }
         };
         // if flag is none, all relays should be set
-        let relay_numbers = if args.flag_relay.is_none() {
+        let relay_numbers = if args.arg_relay.is_none() {
             vec![1,2,3,4,5,6,7,8]
         } else {
-            args.flag_relay.unwrap()
+            args.arg_relay.unwrap()
         };
         // do the switching
         relay.set_relays(relay_numbers, state)?;
@@ -95,10 +95,10 @@ fn run() -> Result<()> {
         let mut relay = Relay8x::new(args.flag_dev, 1)?;
         relay.init_device()?;
         // if flag is none, all relays should be toggeled
-        let relay_numbers = if args.flag_relay.is_none() {
+        let relay_numbers = if args.arg_relay.is_none() {
             vec![1,2,3,4,5,6,7,8]
         } else {
-            args.flag_relay.unwrap()
+            args.arg_relay.unwrap()
         };
         // do the toggle
         relay.toggle_relays(relay_numbers)?;
@@ -108,16 +108,16 @@ fn run() -> Result<()> {
         let mut relay = Relay8x::new(args.flag_dev, 1)?;
         relay.init_device()?;
         // if flag is none, all relays should be reset
-        let relay_numbers = if args.flag_relay.is_none() {
+        let relay_numbers = if args.arg_relay.is_none() {
             vec![1,2,3,4,5,6,7,8]
         } else {
-            args.flag_relay.unwrap()
+            args.arg_relay.unwrap()
         };
         // do the switching
         relay.set_relays(relay_numbers, false)?;
         Ok(())
     } else {
-        println!("I don't know what you want..");
+        println!("I don't know what you want to do..");
         Ok(())
     }
 }

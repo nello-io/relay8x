@@ -129,6 +129,7 @@ impl Relay8x {
         cmd.put_u8(self.address);
         let mut relay_bin = 0;
         numbers.iter().rev().for_each(|x| {
+            // has numbers to be sorted?
             relay_bin |= (1 << (x-1)) as u8;
         });
         cmd.put_u8(relay_bin);
