@@ -9,6 +9,8 @@ extern crate bytes;
 extern crate log;
 #[macro_use]
 extern crate common_failures;
+#[macro_use]
+extern crate failure;
 
 use docopt::Docopt;
 use common_failures::prelude::*;
@@ -34,7 +36,7 @@ Commands:
 Options:
   -h --help     Show this screen.
   -v --version     Show version.
-  --dev=<dev>   path to serial device, e.g. /dev/TTYUSB0
+  --dev=<dev>   path to serial device, e.g. /dev/ttyUSB0
   <relay>   address of relays (1..8) parsed as row of numbers
 ";
 
@@ -76,9 +78,7 @@ fn run() -> Result<()> {
         let state = match args.arg_state.as_ref() {
             "on" => true,
             "off" => false,
-            _ => { 
-                println!("Failed to determine state '{}', used 'off'", args.arg_state);
-                false }
+            _ => bail!("Failed to determine state '{}'. Use either 'on' or 'off'", args.arg_state),
         };
         // if flag is none, all relays should be set
         let relay_numbers = if args.flag_relay.is_none() {
