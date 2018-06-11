@@ -19,14 +19,14 @@ mod connect;
 use connect::{Relay8x, RelayIndex};
 
 const USAGE: &'static str = "
-relais8x
+relay8x
 
 Usage:
-  relais8x set --dev=<dev> [--relay=<relay> ...] <state>
-  relais8x toggle --dev=<dev> [--relay=<relay> ...]
-  relais8x reset --dev=<dev> [--relay=<relay> ...]
-  relais8x (-h | --help)
-  relais8x (-v | --version)
+  relay8x set --dev=<dev> [--relay=<relay> ...] <state>
+  relay8x toggle --dev=<dev> [--relay=<relay> ...]
+  relay8x reset --dev=<dev> [--relay=<relay> ...]
+  relay8x (-h | --help)
+  relay8x (-v | --version)
   
 Commands:
   set   set specified relay 'on' or 'off', if no relay number is given all relays are set
