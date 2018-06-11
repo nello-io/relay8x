@@ -29,50 +29,57 @@ impl Relay8xCmdSet {
                 bytes.put_u8(cmd); // first byte: command
                 bytes.put_u8(address); // second byte: address of card
                 bytes.put_u8(0);  // third: dont care
-                bytes.put_u8(cmd ^ address ^ 0); // fourth: XOR
+                let checksum = Relay8xCmdSet::checksummed(&bytes[..]); // fourth: XOR
+                bytes.put_u8(checksum);
                 debug!("Init command: {:?}", &bytes);
             },
             Relay8xCmdSet::Set => {
                 let cmd = 6; // command for turning on: 6
                 bytes.put_u8(cmd);  // first byte: command
                 bytes.put_u8(address); // second byte: address of card
-                let mut relay_bin = 0b00000000;
-                relays.unwrap().iter().rev().for_each(|x| {
-                    relay_bin |= (1 << (x-1)) as u8; // shift ones to the specified relays
-                });
+                let relay_bin = Relay8xCmdSet::relay_as_u8(relays.unwrap());
                 debug!("Relays to set: {:08b}", relay_bin);
                 bytes.put_u8(relay_bin); // third byte: data of relays
-                bytes.put_u8(cmd ^ address ^ relay_bin); // forth byte:: XOR
+                let checksum = Relay8xCmdSet::checksummed(&bytes[..]); // fourth: XOR
+                bytes.put_u8(checksum);
                 debug!("Set command: {:?}", &bytes);
             },
             Relay8xCmdSet::Toggle => {
                 let cmd = 8; // command for turning on
                 bytes.put_u8(cmd);  // first byte: command
                 bytes.put_u8(address); // second byte: address of card
-                let mut relay_bin = 0b00000000;
-                relays.unwrap().iter().rev().for_each(|x| {
-                    relay_bin |= (1 << (x-1)) as u8; // shift ones to the specified relays
-                });
+                let relay_bin = Relay8xCmdSet::relay_as_u8(relays.unwrap());
                 debug!("Relays to set: {:08b}", relay_bin);
                 bytes.put_u8(relay_bin); // third byte: data of relays
-                bytes.put_u8(cmd ^ address ^ relay_bin); // fourth byte: XOR
+                let checksum = Relay8xCmdSet::checksummed(&bytes[..]); // fourth: XOR
+                bytes.put_u8(checksum);
                 debug!("Toggle command: {:?}", &bytes);
             },
             Relay8xCmdSet::Reset => {
                 let cmd = 7; // command for turning on
                 bytes.put_u8(cmd);
                 bytes.put_u8(address); // second byte: address of card
-                let mut relay_bin = 0b00000000;
-                relays.unwrap().iter().rev().for_each(|x| {
-                    relay_bin |= (1 << (x-1)) as u8; // shift ones to the specified relays
-                });
+                let relay_bin = Relay8xCmdSet::relay_as_u8(relays.unwrap());
                 debug!("Relays to set: {:08b}", relay_bin);
                 bytes.put_u8(relay_bin); // third byte: data of relays
-                bytes.put_u8(cmd ^ address ^ relay_bin); // fourth byte: XOR
+                let checksum = Relay8xCmdSet::checksummed(&bytes[..]); // fourth: XOR
+                bytes.put_u8(checksum);
                 debug!("Reset command: {:?}", &bytes);
             },
          }
          Ok(())
+    }
+
+    fn relay_as_u8(vec: RelayIndex) -> u8 {
+        let mut relay_bin = 0b00000000;
+        vec.iter().rev().for_each(|x| {
+            relay_bin |= (1 << (x-1)) as u8; // shift ones to the specified relays
+        });
+        relay_bin
+    }
+
+    fn checksummed(x: &[u8]) -> u8 {
+        x.iter().fold(0u8, |checksum, elem| {checksum ^ elem})
     }
 }
 
@@ -173,7 +180,7 @@ impl Relay8x {
         let mut cmd = BytesMut::with_capacity(4);
         
         Relay8xCmdSet::encode(Relay8xCmdSet::Toggle, &mut cmd, self.address, Some(numbers))?;
-        
+
         port.write(&cmd[..])?;
         let sent_cmd = cmd.clone();
         port.read(&mut cmd[..])?;
