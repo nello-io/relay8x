@@ -10,7 +10,6 @@ pub struct Relay8x {
     port: Rc<SerialPort>,
 }
 
-// TODO put initialisation into each function and don't do it in main
 impl Relay8x {
 
     /// constructor for a new Relay Card
@@ -26,8 +25,12 @@ impl Relay8x {
     /// initialise device with correct params
     /// sets device address, function can be used to re-set it
     pub fn init_device(&mut self) -> io::Result<BytesMut> {
-        self.configure_port()?;
+
         let port = Rc::get_mut(&mut self.port).unwrap();
+        Relay8x::configure_port(port)?;
+        
+        port.set_timeout(Duration::from_millis(1000))?;
+
         // init relaycard
         let mut cmd = BytesMut::with_capacity(4);
         let cmd_no = 1; // first byte: command init device
@@ -35,7 +38,6 @@ impl Relay8x {
         cmd.put_u8(self.address); // second byte: address of card
         cmd.put_u8(0);  // third: dont care
         cmd.put_u8(cmd_no ^ self.address ^ 0); // fourth: XOR
-
 
         debug!("Init command: {}", self.address);
         port.write(&cmd[..])?;
@@ -47,9 +49,8 @@ impl Relay8x {
     }
 
     /// private function for port settings
-    fn configure_port(&mut self) -> io::Result<()> {
-        let port = Rc::get_mut(&mut self.port).unwrap();
-
+    fn configure_port(port: &mut SerialPort) -> io::Result<()> {
+        
         port.reconfigure(&|settings| {
             settings.set_baud_rate(::serial::Baud19200)?;
             settings.set_char_size(::serial::Bits8);
@@ -60,41 +61,17 @@ impl Relay8x {
         })?;
 
         port.set_timeout(Duration::from_millis(1000))?;
-
+        
         Ok(())
-    }
-
-    /// switch one relay on or off
-    /// number: 1..8 corresponding to relays X1 to X8 on the board
-    /// state: true for switching on, false for off
-    pub fn set_relay(&mut self, number: u8, state: bool) -> io::Result<BytesMut> {
-        let port = Rc::get_mut(&mut self.port).unwrap();
-
-        // cmd message has 4 bytes
-        let mut cmd = BytesMut::with_capacity(4);
-        let on_off = if state { // on
-            6
-        } else { // off
-            7
-        };
-        cmd.put_u8(on_off);
-        cmd.put_u8(self.address);
-        cmd.put_u8(number);
-        cmd.put_u8(on_off ^ self.address ^ number);
-
-        port.write(&cmd[..])?;
-        port.read(&mut cmd[..])?;
-        debug!("Set Relay response: {:?}", cmd);
-
-        Ok(cmd)
     }
 
     /// switch more than one relay on or off
     /// numbers: Vector containing all relay numbers (1..8)
     /// state; true for switching on, false for off
     pub fn set_relays(&mut self, numbers: Vec<u8>, state: bool) -> io::Result<BytesMut> {
+        self.init_device()?;
         let port = Rc::get_mut(&mut self.port).unwrap();
-        
+     
         let mut cmd = BytesMut::with_capacity(4);
         let on_off = if state { // on
             6
