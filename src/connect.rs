@@ -30,6 +30,7 @@ impl Relay8xCmdSet {
                 bytes.put_u8(address); // second byte: address of card
                 bytes.put_u8(0);  // third: dont care
                 bytes.put_u8(cmd ^ address ^ 0); // fourth: XOR
+                debug!("Init command: {:?}", &bytes);
             },
             Relay8xCmdSet::Set => {
                 let cmd = 6; // command for turning on: 6
@@ -42,6 +43,7 @@ impl Relay8xCmdSet {
                 debug!("Relays to set: {:08b}", relay_bin);
                 bytes.put_u8(relay_bin); // third byte: data of relays
                 bytes.put_u8(cmd ^ address ^ relay_bin); // forth byte:: XOR
+                debug!("Set command: {:?}", &bytes);
             },
             Relay8xCmdSet::Toggle => {
                 let cmd = 8; // command for turning on
@@ -54,6 +56,7 @@ impl Relay8xCmdSet {
                 debug!("Relays to set: {:08b}", relay_bin);
                 bytes.put_u8(relay_bin); // third byte: data of relays
                 bytes.put_u8(cmd ^ address ^ relay_bin); // fourth byte: XOR
+                debug!("Toggle command: {:?}", &bytes);
             },
             Relay8xCmdSet::Reset => {
                 let cmd = 7; // command for turning on
@@ -66,6 +69,7 @@ impl Relay8xCmdSet {
                 debug!("Relays to set: {:08b}", relay_bin);
                 bytes.put_u8(relay_bin); // third byte: data of relays
                 bytes.put_u8(cmd ^ address ^ relay_bin); // fourth byte: XOR
+                debug!("Reset command: {:?}", &bytes);
             },
          }
          Ok(())
@@ -94,7 +98,6 @@ impl Relay8x {
         let mut cmd = BytesMut::with_capacity(4);
         Relay8xCmdSet::encode(Relay8xCmdSet::Init, &mut cmd, self.address, None)?;
 
-        debug!("Init command: {:?}", &cmd);
         port.write(&cmd[..])?;
         port.read(&mut cmd[..])?;
         debug!("Response init: {:?}", &cmd);
@@ -131,8 +134,6 @@ impl Relay8x {
 
         Relay8xCmdSet::encode(Relay8xCmdSet::Set, &mut cmd, self.address, Some(numbers))?;
 
-        debug!("Set command: {:?}", cmd);
-
         port.write(&cmd[..])?;
         let sent_cmd = cmd.clone();
         port.read(&mut cmd[..])?;
@@ -153,8 +154,6 @@ impl Relay8x {
 
         Relay8xCmdSet::encode(Relay8xCmdSet::Reset, &mut cmd, self.address, Some(numbers))?;
 
-        debug!("Set command: {:?}", cmd);
-
         port.write(&cmd[..])?;
         let sent_cmd = cmd.clone();
         port.read(&mut cmd[..])?;
@@ -174,7 +173,7 @@ impl Relay8x {
         let mut cmd = BytesMut::with_capacity(4);
         
         Relay8xCmdSet::encode(Relay8xCmdSet::Toggle, &mut cmd, self.address, Some(numbers))?;
-        debug!("command {:?}", cmd);
+        
         port.write(&cmd[..])?;
         let sent_cmd = cmd.clone();
         port.read(&mut cmd[..])?;
