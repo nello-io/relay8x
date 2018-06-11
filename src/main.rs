@@ -16,7 +16,7 @@ use docopt::Docopt;
 use common_failures::prelude::*;
 
 mod connect;
-use connect::{Relay8x, RelayIndex};
+use connect::{Relay8x, RelayIndex, Relay8xCmdSet};
 
 const USAGE: &'static str = "
 relay8x
@@ -75,16 +75,15 @@ fn run() -> Result<()> {
         // open device, address of relay is always 1 as for now
         let mut relay = Relay8x::new(args.flag_dev, 1)?;
         relay.init_device()?;
-        // map state argument to bool, use false as default
-        let state = match args.arg_state.as_ref() {
-            "on" => true,
-            "off" => false,
-            _ => bail!("Failed to determine state '{}'. Use either 'on' or 'off'", args.arg_state),
-        };
         // if flag is none, all relays should be set
         let relay_numbers = args.flag_relay.unwrap_or_default();
-        // do the switching
-        relay.set_relays(relay_numbers, state)?;
+        // map state argument to set or reset
+        match args.arg_state.as_ref() {
+            "on" => relay.set_relays(relay_numbers)?,
+            "off" => relay.reset_relays(relay_numbers)?,
+            _ => bail!("Failed to determine state '{}'. Use either 'on' or 'off'", args.arg_state),
+        };
+        
         Ok(())
 
     } else if args.cmd_toggle {
@@ -103,7 +102,7 @@ fn run() -> Result<()> {
         // if flag is none, all relays should be reset
         let relay_numbers = args.flag_relay.unwrap_or_default();
         // do the switching, false = off
-        relay.set_relays(relay_numbers, false)?;
+        relay.reset_relays(relay_numbers)?;
         Ok(())
     } else {
         println!("I don't know what you want to do..");
