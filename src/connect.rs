@@ -157,7 +157,8 @@ mod test {
     fn connect_to_card() {    
         let mut relay = Relay8x::new(String::from("/dev/ttyUSB0"), 1).expect("Failed to connect to device");
         let init_response = relay.init_device().expect("Failed to init device");
-        let expected_res = BytesMut::from(vec![254, relay.address, 254, 254^relay.address^254]);
+        let expected_res = BytesMut::from(vec![254, relay.address, 11, 254^relay.address^11]);
         assert_eq!(init_response, expected_res);
     }
+
 }
