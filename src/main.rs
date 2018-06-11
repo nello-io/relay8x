@@ -16,7 +16,7 @@ use docopt::Docopt;
 use common_failures::prelude::*;
 
 mod connect;
-use connect::{Relay8x, RelayIndex, Relay8xCmdSet};
+use connect::{Relay8x, RelayIndex};
 
 const USAGE: &'static str = "
 relay8x
@@ -62,8 +62,7 @@ fn run() -> Result<()> {
     let args: Args = Docopt::new(USAGE)
         .and_then(|d| d.deserialize())
         .unwrap_or_else(|e| e.exit());  
-    // set default relay vec
-
+    
     // check arguments
     if args.flag_version {
         println!("{}: {}", NAME, VERSION);
