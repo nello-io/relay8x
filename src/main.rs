@@ -16,7 +16,7 @@ use docopt::Docopt;
 use common_failures::prelude::*;
 
 mod connect;
-use connect::{Relay8x, RelayIndex, Relay8xCmdSet};
+use connect::{Relay8x, RelayIndex};
 
 const USAGE: &'static str = "
 relay8x
