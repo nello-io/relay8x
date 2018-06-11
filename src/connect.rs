@@ -5,6 +5,8 @@ use std::time::Duration;
 use bytes::{BytesMut, BufMut};
 use std::rc::Rc;
 
+pub type RelayIndex = Vec<u8>;
+
 pub struct Relay8x {
     address: u8,
     port: Rc<SerialPort>,

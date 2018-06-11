@@ -16,7 +16,7 @@ use docopt::Docopt;
 use common_failures::prelude::*;
 
 mod connect;
-use connect::Relay8x;
+use connect::{Relay8x, RelayIndex};
 
 const USAGE: &'static str = "
 relais8x
@@ -34,9 +34,9 @@ Commands:
   reset switch all or just one relay off to reach defined state again
 
 Options:
-  -h --help     Show this screen.
-  -v --version     Show version.
-  --dev=<dev>   path to serial device, e.g. /dev/ttyUSB0
+  -h --help         Show this screen.
+  -v --version      Show version.
+  --dev=<dev>       path to serial device, e.g. /dev/ttyUSB0
   --relay=<relay>   address of relays (1..8) parsed as row of numbers [default: 1 2 3 4 5 6 7 8]
 ";
 
@@ -48,7 +48,7 @@ struct Args {
     flag_dev: String,
     flag_version: bool,
     flag_help: bool,
-    flag_relay: Option<Vec<u8>>,
+    flag_relay: Option<RelayIndex>,
     arg_state: String,
 }
 
