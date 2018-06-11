@@ -38,7 +38,6 @@ impl Relay8x {
         cmd.put_u8(0);  // third: dont care
         cmd.put_u8(cmd_no ^ self.address ^ 0); // fourth: XOR
 
-        debug!("Init address: {}", self.address);
         debug!("Init command: {:?}", &cmd);
         port.write(&cmd[..])?;
         port.read(&mut cmd[..])?;
@@ -49,7 +48,7 @@ impl Relay8x {
 
     /// private function for port settings
     fn configure_device(port: &mut SerialPort) -> io::Result<()> {
-        
+        // configure interface with its params, see doc of relay card
         port.reconfigure(&|settings| {
             settings.set_baud_rate(::serial::Baud19200)?;
             settings.set_char_size(::serial::Bits8);
@@ -85,7 +84,7 @@ impl Relay8x {
         cmd.put_u8(relay_bin);
         cmd.put_u8(on_off ^ self.address ^ relay_bin);
 
-        debug!("{:?} => {:08b}", numbers, relay_bin);
+        debug!("Relays to set: {:?} => {:08b}", numbers, relay_bin);
         debug!("{:?}", cmd);
 
         port.write(&cmd[..])?;
@@ -109,13 +108,12 @@ impl Relay8x {
         cmd.put_u8(self.address);
         let mut relay_bin = 0;
         numbers.iter().rev().for_each(|x| {
-            // has numbers to be sorted?
             relay_bin |= (1 << (x-1)) as u8;
         });
         cmd.put_u8(relay_bin);
         cmd.put_u8(8 ^ self.address ^ relay_bin);
 
-        debug!("{:?} => {:08b}", numbers, relay_bin);
+        debug!("Relays to set: {:?} => {:08b}", numbers, relay_bin);
         debug!("command {:?}", cmd);
 
         port.write(&cmd[..])?;
