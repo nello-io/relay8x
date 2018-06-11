@@ -5,7 +5,6 @@ use bytes::{BytesMut, BufMut};
 use std::rc::Rc;
 
 pub struct Relay8x {
-    device_name: String,
     address: u8,
     port: Rc<SerialPort>,
 }
@@ -17,7 +16,6 @@ impl Relay8x {
         
         Ok(Self {
             port: Rc::new(::serial::open(&device_name)?),
-            device_name: device_name,
             address: address,
         })
     }
@@ -27,7 +25,7 @@ impl Relay8x {
     pub fn init_device(&mut self) -> io::Result<BytesMut> {
 
         let port = Rc::get_mut(&mut self.port).unwrap();
-        Relay8x::configure_port(port)?;
+        Relay8x::configure_device(port)?;
         
         port.set_timeout(Duration::from_millis(1000))?;
 
@@ -49,7 +47,7 @@ impl Relay8x {
     }
 
     /// private function for port settings
-    fn configure_port(port: &mut SerialPort) -> io::Result<()> {
+    fn configure_device(port: &mut SerialPort) -> io::Result<()> {
         
         port.reconfigure(&|settings| {
             settings.set_baud_rate(::serial::Baud19200)?;
@@ -65,9 +63,9 @@ impl Relay8x {
         Ok(())
     }
 
-    /// switch more than one relay on or off
+    /// switch arbitrary relays on or off
     /// numbers: Vector containing all relay numbers (1..8)
-    /// state; true for switching on, false for off
+    /// state: true for switching on, false for off
     pub fn set_relays(&mut self, numbers: Vec<u8>, state: bool) -> io::Result<BytesMut> {
         self.init_device()?;
         let port = Rc::get_mut(&mut self.port).unwrap();
@@ -97,7 +95,11 @@ impl Relay8x {
         Ok(cmd)
     }
 
+    /// toggle aribtrary relays
+    /// numbers: vector containing all relay numbers (1..8)
     pub fn toggle_relays(&mut self, numbers: Vec<u8>) -> io::Result<BytesMut> {
+
+        self.init_device()?;
         let port = Rc::get_mut(&mut self.port).unwrap();
 
         let mut cmd = BytesMut::with_capacity(4);
