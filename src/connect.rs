@@ -1,5 +1,6 @@
 use serial::prelude::*;
 use std::io;
+use std::io::{Error, ErrorKind};
 use std::time::Duration;
 use bytes::{BytesMut, BufMut};
 use std::rc::Rc;
@@ -37,11 +38,11 @@ impl Relay8x {
         cmd.put_u8(0);  // third: dont care
         cmd.put_u8(cmd_no ^ self.address ^ 0); // fourth: XOR
 
-        debug!("Init command: {}", self.address);
+        debug!("Init address: {}", self.address);
+        debug!("Init command: {:?}", &cmd);
         port.write(&cmd[..])?;
-
         port.read(&mut cmd[..])?;
-        debug!("Response init: {:?}", cmd);
+        debug!("Response init: {:?}", &cmd);
         
         Ok(cmd)
     }
@@ -69,7 +70,6 @@ impl Relay8x {
     pub fn set_relays(&mut self, numbers: Vec<u8>, state: bool) -> io::Result<BytesMut> {
         self.init_device()?;
         let port = Rc::get_mut(&mut self.port).unwrap();
-     
         let mut cmd = BytesMut::with_capacity(4);
         let on_off = if state { // on
             6
@@ -89,9 +89,10 @@ impl Relay8x {
         debug!("{:?}", cmd);
 
         port.write(&cmd[..])?;
+        let sent_cmd = cmd.clone();
         port.read(&mut cmd[..])?;
         debug!("Set Relays response: {:?}", cmd);
-
+        Relay8x::check_response(&cmd, &sent_cmd)?;
         Ok(cmd)
     }
 
@@ -118,11 +119,32 @@ impl Relay8x {
         debug!("command {:?}", cmd);
 
         port.write(&cmd[..])?;
+        let sent_cmd = cmd.clone();
         port.read(&mut cmd[..])?;
-
-        debug!("response: {:?}", cmd);
+        debug!("Set Relays response: {:?}", cmd);
+        Relay8x::check_response(&cmd, &sent_cmd)?;
         
         Ok(cmd)
+    }
+
+    fn check_response(msg: & BytesMut, sent_msg: &BytesMut) -> io::Result<()> {
+        
+        // check first byte
+        let checker_byte = sent_msg.get(0).unwrap_or(&1);
+        let checked_bytes = msg.get(0).unwrap_or(&1);
+        if *checked_bytes != !checker_byte  {
+            return Err(Error::new(ErrorKind::Other, format!("Bad first byte: is {}, should be {}", checked_bytes, !checker_byte)))
+        }
+        // second byte: adress
+        if msg.get(1).unwrap_or(&0) != sent_msg.get(1).unwrap_or(&1) {
+            return Err(Error::new(ErrorKind::Other, format!("Wrong Adress: {}", msg.get(1).unwrap())))
+        }
+        // last byte: XOR
+        if *msg.get(3).unwrap_or(&0) != (*msg.get(0).unwrap_or(&1) ^ *msg.get(1).unwrap_or(&0) ^ *msg.get(2).unwrap_or(&0)) {
+            return Err(Error::new(ErrorKind::Other, "XOR in last byte is wrong"))
+        }
+        debug!("Check ok");
+        Ok(())
     }
 }
 

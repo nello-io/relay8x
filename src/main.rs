@@ -77,7 +77,7 @@ fn run() -> Result<()> {
             "on" => true,
             "off" => false,
             _ => { 
-                println!("Failed to determine state '{}', used off", args.arg_state);
+                println!("Failed to determine state '{}', used 'off'", args.arg_state);
                 false }
         };
         // if flag is none, all relays should be set
