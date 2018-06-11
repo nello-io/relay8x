@@ -113,7 +113,7 @@ fn run() -> Result<()> {
         } else {
             args.flag_relay.unwrap()
         };
-        // do the switching
+        // do the switching, false = off
         relay.set_relays(relay_numbers, false)?;
         Ok(())
     } else {
