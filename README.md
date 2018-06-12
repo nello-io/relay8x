@@ -13,3 +13,18 @@ small utility command line tool to communicate with [relaise cards](https://www.
 ## Documentation
 
 details about communication protocol are in this [pdf](DOC_8FACH_RELAISKARTE_24V_7A_de_en_fr_nl.pdf)
+
+## Wiring
+
+### One card
+
+- Jumper JP1 in position `1-2`
+- connect to USB
+
+### Cascading
+
+- Jumper JP1 in position `2-3` for all cards but the last
+- Jumper JP1 at last card in position `1-2`
+- connect all `GND` terminals
+- connect `Txb` of preceeding card with `Rxa` of following card
+- connect `Rxb` of preceeding card with `Txa` of following card
