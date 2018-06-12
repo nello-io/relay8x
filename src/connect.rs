@@ -3,7 +3,7 @@ use std::io;
 use std::io::{Error, ErrorKind};
 use bytes::{BytesMut, BufMut};
 use std::rc::Rc;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 // type aliases for relay vecs and card vecs
 pub type RelayIndex = Vec<u8>;
@@ -128,23 +128,20 @@ impl Relay8x {
 
         port.write(&cmd[..])?;
         debug!("Wrote init message..");
-        // in order to read all responses from all connected cards, we have to wait a couple of millis
-        //sleep(Duration::from_millis(20));
-        // allocate a large ByteMut to get all responses into that buffer at once,
-        // now it's enough for five cards
         let mut resp = BytesMut::new();
+        let now = Instant::now();
+        // read until last card has responded
         loop {
             resp.put_u32_le(0);
             port.read(&mut resp[..])?;
             debug!("Response init: {:02x} {:02x} {:02x} {:02x}", &resp[0], &resp[1], &resp[2], &resp[3]);
-            
             if *resp.first().unwrap() == self.start_address {
                 break;
+            } else if now.elapsed().as_secs() > 30 {
+                return Err(Error::new(ErrorKind::Other, "Initialisation took to long.."));
             }
         }
 
-        // checks only the first answer since we know that there is one card for sure
-        //Relay8x::check_response(&resp, &cmd)?;
         Ok(cmd)
     }
 
