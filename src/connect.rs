@@ -41,7 +41,7 @@ impl Relay8xCmdSet {
                 bytes.put_u8(0);  // third: dont care
                 let checksum = Relay8xCmdSet::checksummed(&bytes[..]); // fourth: XOR
                 bytes.put_u8(checksum);
-                debug!("Init command: {:?}", &bytes);
+                debug!("Init command: {:02x} {:02x} {:02x} {:02x}", &bytes[0], &bytes[1], &bytes[2], &bytes[3]);
             },
             Relay8xCmdSet::Set => {
                 let cmd = 6; // command for turning on: 6
@@ -53,7 +53,7 @@ impl Relay8xCmdSet {
                 bytes.put_u8(relay_bin); // third byte: data of relays
                 let checksum = Relay8xCmdSet::checksummed(&bytes[..]); // fourth: XOR
                 bytes.put_u8(checksum);
-                debug!("Set command: {:?}", &bytes);
+                debug!("Set command: {:02x} {:02x} {:02x} {:02x}", &bytes[0], &bytes[1], &bytes[2], &bytes[3]);
             },
             Relay8xCmdSet::Toggle => {
                 let cmd = 8; // command for turning on
@@ -65,7 +65,7 @@ impl Relay8xCmdSet {
                 bytes.put_u8(relay_bin); // third byte: data of relays
                 let checksum = Relay8xCmdSet::checksummed(&bytes[..]); // fourth: XOR
                 bytes.put_u8(checksum);
-                debug!("Toggle command: {:?}", &bytes);
+                debug!("Toggle command: {:02x} {:02x} {:02x} {:02x}", &bytes[0], &bytes[1], &bytes[2], &bytes[3]);
             },
             Relay8xCmdSet::Reset => {
                 let cmd = 7; // command for turning on
@@ -77,7 +77,7 @@ impl Relay8xCmdSet {
                 bytes.put_u8(relay_bin); // third byte: data of relays
                 let checksum = Relay8xCmdSet::checksummed(&bytes[..]); // fourth: XOR
                 bytes.put_u8(checksum);
-                debug!("Reset command: {:?}", &bytes);
+                debug!("Reset command: {:02x} {:02x} {:02x} {:02x}", &bytes[0], &bytes[1], &bytes[2], &bytes[3]);
             },
          }
          Ok(())
@@ -134,11 +134,11 @@ impl Relay8x {
         // now it's enough for five cards
         let mut resp = BytesMut::new();
         loop {
-            resp.put_u8(0);
+            resp.put_u32_le(0);
             port.read(&mut resp[..])?;
-            debug!("Response init: {:?}", &resp);
+            debug!("Response init: {:02x} {:02x} {:02x} {:02x}", &resp[0], &resp[1], &resp[2], &resp[3]);
             
-            if resp.contains(&9) {
+            if *resp.first().unwrap() == self.start_address {
                 break;
             }
         }
@@ -181,7 +181,7 @@ impl Relay8x {
             port.write(&cmd[..])?;
             let sent_cmd = cmd.clone();
             port.read(&mut cmd[..])?;
-            debug!("Set Relays response: {:?}", cmd);
+            debug!("Set Relays response: {:02x} {:02x} {:02x} {:02x}", &cmd[0], &cmd[1], &cmd[2], &cmd[3]);
             Relay8x::check_response(&cmd, &sent_cmd)?;
             cmd.clear();
         }
@@ -204,7 +204,7 @@ impl Relay8x {
             port.write(&cmd[..])?;
             let sent_cmd = cmd.clone();
             port.read(&mut cmd[..])?;
-            debug!("Reset Relays response: {:?}", cmd);
+            debug!("Reset Relays response: {:02x} {:02x} {:02x} {:02x}", &cmd[0], &cmd[1], &cmd[2], &cmd[3]);
             Relay8x::check_response(&cmd, &sent_cmd)?;
             cmd.clear();
         }
@@ -226,7 +226,7 @@ impl Relay8x {
             port.write(&cmd[..])?;
             let sent_cmd = cmd.clone();
             port.read(&mut cmd[..])?;
-            debug!("Toggle Relays response: {:?}", cmd);
+            debug!("Toggle Relays response: {:02x} {:02x} {:02x} {:02x}", &cmd[0], &cmd[1], &cmd[2], &cmd[3]);
             Relay8x::check_response(&cmd, &sent_cmd)?;
             cmd.clear();
         }
