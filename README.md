@@ -1,4 +1,4 @@
-# relaise8x
+# relay8x
 
 small utility command line tool to communicate with [relaise cards](https://www.conrad.de/de/relaiskarte-baustein-conrad-components-197720-12-vdc-24-vdc-197720.html#downloadcenter) over serial interface
 
@@ -25,6 +25,6 @@ details about communication protocol are in this [pdf](DOC_8FACH_RELAISKARTE_24V
 
 - Jumper JP1 in position `2-3` for all cards but the last
 - Jumper JP1 at last card in position `1-2`
-- connect all `GND` terminals
+- connect `GND` terminals with following card
 - connect `Txb` of preceeding card with `Rxa` of following card
 - connect `Rxb` of preceeding card with `Txa` of following card
