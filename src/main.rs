@@ -16,19 +16,21 @@ use docopt::Docopt;
 use common_failures::prelude::*;
 
 mod connect;
-use connect::{Relay8x, RelayIndex};
+use connect::{Relay8x, RelayIndex, CardIndex};
 
 const USAGE: &'static str = "
 relay8x
 
 Usage:
-  relay8x set --dev=<dev> [--relay=<relay> ...] <state>
-  relay8x toggle --dev=<dev> [--relay=<relay> ...]
-  relay8x reset --dev=<dev> [--relay=<relay> ...]
+  relay8x init --dev=<dev>
+  relay8x set --dev=<dev> [--card=<card> ...] [--relay=<relay> ...] <state>
+  relay8x toggle --dev=<dev> [--card=<card> ...] [--relay=<relay> ...]
+  relay8x reset --dev=<dev> [--card=<card> ...] [--relay=<relay> ...]
   relay8x (-h | --help)
   relay8x (-v | --version)
   
 Commands:
+  init  open serial device and init protocol, has to be called once after plugging in
   set   set specified relay 'on' or 'off', if no relay number is given all relays are set
   toggle    toggle specified relay,  if no relay number is given all relays are toggeled
   reset switch all or just one relay off to reach defined state again
@@ -37,11 +39,13 @@ Options:
   -h --help         Show this screen.
   -v --version      Show version.
   --dev=<dev>       path to serial device, e.g. /dev/ttyUSB0
-  --relay=<relay>   address of relays (1..8) parsed as row of numbers [default: 1 2 3 4 5 6 7 8]
+  --relay=<relay>   number of relays (1..8), one flag per relay [default: 1 2 3 4 5 6 7 8]
+  --card=<card>     number of card (1..x), one flag per card [default: 0]
 ";
 
 #[derive(Debug, Deserialize)]
 struct Args {
+    cmd_init: bool,
     cmd_set: bool,
     cmd_toggle: bool,
     cmd_reset: bool,
@@ -49,6 +53,7 @@ struct Args {
     flag_version: bool,
     flag_help: bool,
     flag_relay: Option<RelayIndex>,
+    flag_card: Option<CardIndex>,
     arg_state: String,
 }
 
@@ -70,16 +75,21 @@ fn run() -> Result<()> {
     } else if args.flag_help {
         println!("{}", USAGE);
         Ok(())
+    } else if args.cmd_init {
+        let mut relay = Relay8x::new(args.flag_dev, 1)?;
+        relay.init_device()?;
+        Ok(())
     } else if args.cmd_set {
         // open device, address of relay is always 1 as for now
         let mut relay = Relay8x::new(args.flag_dev, 1)?;
-        relay.init_device()?;
-        // if flag is none, all relays should be set
+        // if flag_relay is none, all relays should be set
         let relay_numbers = args.flag_relay.unwrap_or_default();
+        // if flag_card is none, all cards should be set
+        let card_numbers = args.flag_card.unwrap_or_default();
         // map state argument to set or reset
         match args.arg_state.as_ref() {
-            "on" => relay.set_relays(relay_numbers)?,
-            "off" => relay.reset_relays(relay_numbers)?,
+            "on" => relay.set_relays(card_numbers, relay_numbers)?,
+            "off" => relay.reset_relays(card_numbers, relay_numbers)?,
             _ => bail!("Failed to determine state '{}'. Use either 'on' or 'off'", args.arg_state),
         };
         
@@ -88,20 +98,22 @@ fn run() -> Result<()> {
     } else if args.cmd_toggle {
         // open device
         let mut relay = Relay8x::new(args.flag_dev, 1)?;
-        relay.init_device()?;
         // if flag is none, all relays should be toggeled
         let relay_numbers = args.flag_relay.unwrap_or_default();
+        // if flag_card is none, all cards should be set
+        let card_numbers = args.flag_card.unwrap_or_default();
         // do the toggle
-        relay.toggle_relays(relay_numbers)?;
+        relay.toggle_relays(card_numbers, relay_numbers)?;
         Ok(())
     } else if args.cmd_reset {
         // open device
         let mut relay = Relay8x::new(args.flag_dev, 1)?;
-        relay.init_device()?;
         // if flag is none, all relays should be reset
         let relay_numbers = args.flag_relay.unwrap_or_default();
+        // if flag_card is none, all cards should be set
+        let card_numbers = args.flag_card.unwrap_or_default();
         // do the switching, false = off
-        relay.reset_relays(relay_numbers)?;
+        relay.reset_relays(card_numbers, relay_numbers)?;
         Ok(())
     } else {
         println!("I don't know what you want to do..");
