@@ -213,7 +213,7 @@ impl Relay8x {
         let resp_addr = msg.get(1).unwrap_or(&0);
         let sent_addr = sent_msg.get(1).unwrap_or(&1);
         // weird error, it prints the same addresses but says there are not equal...
-        if resp_addr != &(sent_addr-card+1) {
+        if resp_addr != sent_addr {
             return Err(Error::new(ErrorKind::Other, format!("Wrong Adress: 0x{:02x} instead of 0x{:02x}", resp_addr, sent_addr)))
         }
         // last byte: XOR
