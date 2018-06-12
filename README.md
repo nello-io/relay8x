@@ -8,7 +8,7 @@ small utility command line tool to communicate with [relaise cards](https://www.
 - [x] toggle specific or all relays on or off
 - [x] reset (=turn off) specific or all relays
 - [ ] run custom command
-- [ ] multiple cards on one serial device
+- [x] multiple cards on one serial device
 
 ## Documentation
 
