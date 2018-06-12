@@ -1,34 +1,43 @@
 use serial::prelude::*;
 use std::io;
 use std::io::{Error, ErrorKind};
-use std::time::Duration;
 use bytes::{BytesMut, BufMut};
 use std::rc::Rc;
+use std::{thread::sleep, time::Duration};
 
+// type aliases for relay vecs and card vecs
 pub type RelayIndex = Vec<u8>;
 pub type CardIndex = Vec<u8>;
 
 pub struct Relay8x {
+    // address of the first card, succeding card has +1 and so on
     start_address: u8,
+    // struct containing the serial port settings and stuff
     port: Rc<SerialPort>,
 }
 
+/// enum for all possbile commands
 #[derive(Debug)]
 pub enum Relay8xCmdSet {
+    // initialisation command
     Init,
+    // switch relays on or off
     Set,
+    // toggle relays
     Toggle,
+    // reset (switch off) relays
     Reset,
 }
 
 
 impl Relay8xCmdSet {
-    pub fn encode(self, bytes: &mut BytesMut, address: u8, card: Option<u8>, relays: Option<&RelayIndex>) -> io::Result<()> {
+    /// based on command, address and card, returns the command frame for the relay card
+    pub fn encode(self, bytes: &mut BytesMut, start_address: u8, card: Option<u8>, relays: Option<&RelayIndex>) -> io::Result<()> {
         match self {
             Relay8xCmdSet::Init =>  {
                 let cmd = 1; // init command: 1
                 bytes.put_u8(cmd); // first byte: command
-                bytes.put_u8(address); // second byte: address of card
+                bytes.put_u8(start_address); // second byte: address of card
                 bytes.put_u8(0);  // third: dont care
                 let checksum = Relay8xCmdSet::checksummed(&bytes[..]); // fourth: XOR
                 bytes.put_u8(checksum);
@@ -37,7 +46,8 @@ impl Relay8xCmdSet {
             Relay8xCmdSet::Set => {
                 let cmd = 6; // command for turning on: 6
                 bytes.put_u8(cmd);  // first byte: command
-                bytes.put_u8(address+card.unwrap_or(1)-1); // second byte: address of card
+                let address = Relay8xCmdSet::addressed(start_address, card);
+                bytes.put_u8(address); // second byte: address of card
                 let relay_bin = Relay8xCmdSet::relay_as_u8(relays.unwrap());
                 debug!("Relays to set: {:08b}", relay_bin);
                 bytes.put_u8(relay_bin); // third byte: data of relays
@@ -48,7 +58,8 @@ impl Relay8xCmdSet {
             Relay8xCmdSet::Toggle => {
                 let cmd = 8; // command for turning on
                 bytes.put_u8(cmd);  // first byte: command
-                bytes.put_u8(address+card.unwrap_or(1)-1); // second byte: address of card
+                let address = Relay8xCmdSet::addressed(start_address, card);
+                bytes.put_u8(address); // second byte: address of card
                 let relay_bin = Relay8xCmdSet::relay_as_u8(relays.unwrap());
                 debug!("Relays to set: {:08b}", relay_bin);
                 bytes.put_u8(relay_bin); // third byte: data of relays
@@ -59,7 +70,8 @@ impl Relay8xCmdSet {
             Relay8xCmdSet::Reset => {
                 let cmd = 7; // command for turning on
                 bytes.put_u8(cmd);
-                bytes.put_u8(address+card.unwrap_or(1)-1); // second byte: address of card
+                let address = Relay8xCmdSet::addressed(start_address, card);
+                bytes.put_u8(address); // second byte: address of card
                 let relay_bin = Relay8xCmdSet::relay_as_u8(relays.unwrap());
                 debug!("Relays to set: {:08b}", relay_bin);
                 bytes.put_u8(relay_bin); // third byte: data of relays
@@ -71,6 +83,7 @@ impl Relay8xCmdSet {
          Ok(())
     }
 
+    /// calculates the data byte based on the relays to be switchted
     fn relay_as_u8(vec: &RelayIndex) -> u8 {
         let mut relay_bin = 0b00000000;
         vec.iter().rev().for_each(|x| {
@@ -79,8 +92,14 @@ impl Relay8xCmdSet {
         relay_bin
     }
 
+    /// calculates the XOR checksum for the fourth  byte ot the command
     fn checksummed(x: &[u8]) -> u8 {
         x.iter().fold(0u8, |checksum, elem| {checksum ^ elem})
+    }
+    
+    /// calculates the address for each card based on starting address of first card
+    fn addressed(address: u8, card: Option<u8>) -> u8 {
+        address+card.unwrap_or(1)-1
     }
 
 }
@@ -109,10 +128,18 @@ impl Relay8x {
 
         port.write(&cmd[..])?;
         debug!("Wrote init message..");
-        let sent_cmd = cmd.clone();
-        port.read(&mut cmd[..])?;
-        debug!("Response init: {:?}", &cmd);
-        Relay8x::check_response(&cmd, &sent_cmd)?;
+        // in order to read all responses from all connected cards, we have to wait a couple of millis
+        sleep(Duration::from_millis(20));
+        // allocate a large ByteMut to get all responses into that buffer at once,
+        // now it's enough for five cards
+        let mut resp = BytesMut::new();
+        resp.put_u64_le(0);
+        resp.put_u64_le(0);
+        resp.put_u64_le(0);
+        port.read(&mut resp[..])?;
+        debug!("Response init: {:?}", &resp);
+        // checks only the first answer since we know that there is one card for sure
+        Relay8x::check_response(&resp, &cmd)?;
         Ok(cmd)
     }
 
@@ -172,7 +199,7 @@ impl Relay8x {
             port.write(&cmd[..])?;
             let sent_cmd = cmd.clone();
             port.read(&mut cmd[..])?;
-            debug!("Set Relays response: {:?}", cmd);
+            debug!("Reset Relays response: {:?}", cmd);
             Relay8x::check_response(&cmd, &sent_cmd)?;
             cmd.clear();
         }
@@ -194,7 +221,7 @@ impl Relay8x {
             port.write(&cmd[..])?;
             let sent_cmd = cmd.clone();
             port.read(&mut cmd[..])?;
-            debug!("Set Relays response: {:?}", cmd);
+            debug!("Toggle Relays response: {:?}", cmd);
             Relay8x::check_response(&cmd, &sent_cmd)?;
             cmd.clear();
         }

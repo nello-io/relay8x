@@ -1,7 +1,7 @@
-extern crate serial;
 extern crate docopt;
 extern crate env_logger;
 extern crate serde;
+extern crate serial;
 #[macro_use]
 extern crate serde_derive;
 extern crate bytes;
@@ -14,15 +14,15 @@ extern crate failure;
 
 use docopt::Docopt;
 use common_failures::prelude::*;
+use std::{thread::sleep, time::Duration};
 
 mod connect;
-use connect::{Relay8x, RelayIndex, CardIndex};
+use connect::{CardIndex, Relay8x, RelayIndex};
 
 const USAGE: &'static str = "
 relay8x
 
 Usage:
-  relay8x init --dev=<dev>
   relay8x set --dev=<dev> [--card=<card> ...] [--relay=<relay> ...] <state>
   relay8x toggle --dev=<dev> [--card=<card> ...] [--relay=<relay> ...]
   relay8x reset --dev=<dev> [--card=<card> ...] [--relay=<relay> ...]
@@ -30,7 +30,6 @@ Usage:
   relay8x (-v | --version)
   
 Commands:
-  init  open serial device and init protocol, has to be called once after plugging in
   set   set specified relay 'on' or 'off', if no relay number is given all relays are set
   toggle    toggle specified relay,  if no relay number is given all relays are toggeled
   reset switch all or just one relay off to reach defined state again
@@ -45,7 +44,6 @@ Options:
 
 #[derive(Debug, Deserialize)]
 struct Args {
-    cmd_init: bool,
     cmd_set: bool,
     cmd_toggle: bool,
     cmd_reset: bool,
@@ -61,13 +59,12 @@ const VERSION: &'static str = env!("CARGO_PKG_VERSION");
 const NAME: &'static str = env!("CARGO_PKG_NAME");
 
 fn run() -> Result<()> {
-
     env_logger::init();
 
     let args: Args = Docopt::new(USAGE)
         .and_then(|d| d.deserialize())
-        .unwrap_or_else(|e| e.exit());  
-    
+        .unwrap_or_else(|e| e.exit());
+
     // check arguments
     if args.flag_version {
         println!("{}: {}", NAME, VERSION);
@@ -75,13 +72,12 @@ fn run() -> Result<()> {
     } else if args.flag_help {
         println!("{}", USAGE);
         Ok(())
-    } else if args.cmd_init {
-        let mut relay = Relay8x::new(args.flag_dev, 1)?;
-        relay.init_device()?;
-        Ok(())
     } else if args.cmd_set {
         // open device, address of relay is always 1 as for now
         let mut relay = Relay8x::new(args.flag_dev, 1)?;
+        relay.init_device()?;
+        // wait to give cards time to answer
+        sleep(Duration::from_millis(10));
         // if flag_relay is none, all relays should be set
         let relay_numbers = args.flag_relay.unwrap_or_default();
         // if flag_card is none, all cards should be set
@@ -90,14 +86,19 @@ fn run() -> Result<()> {
         match args.arg_state.as_ref() {
             "on" => relay.set_relays(card_numbers, relay_numbers)?,
             "off" => relay.reset_relays(card_numbers, relay_numbers)?,
-            _ => bail!("Failed to determine state '{}'. Use either 'on' or 'off'", args.arg_state),
+            _ => bail!(
+                "Failed to determine state '{}'. Use either 'on' or 'off'",
+                args.arg_state
+            ),
         };
-        
-        Ok(())
 
+        Ok(())
     } else if args.cmd_toggle {
         // open device
         let mut relay = Relay8x::new(args.flag_dev, 1)?;
+        relay.init_device()?;
+        // wait to give cards time to answer
+        sleep(Duration::from_millis(10));
         // if flag is none, all relays should be toggeled
         let relay_numbers = args.flag_relay.unwrap_or_default();
         // if flag_card is none, all cards should be set
@@ -108,6 +109,9 @@ fn run() -> Result<()> {
     } else if args.cmd_reset {
         // open device
         let mut relay = Relay8x::new(args.flag_dev, 1)?;
+        relay.init_device()?;
+        // wait to give cards time to answer
+        sleep(Duration::from_millis(10));
         // if flag is none, all relays should be reset
         let relay_numbers = args.flag_relay.unwrap_or_default();
         // if flag_card is none, all cards should be set
@@ -120,6 +124,5 @@ fn run() -> Result<()> {
         Ok(())
     }
 }
-
 
 quick_main!(run);
