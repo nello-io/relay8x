@@ -6,9 +6,10 @@ use bytes::{BytesMut, BufMut};
 use std::rc::Rc;
 
 pub type RelayIndex = Vec<u8>;
+pub type CardIndex = Vec<u8>;
 
 pub struct Relay8x {
-    address: u8,
+    start_address: u8,
     port: Rc<SerialPort>,
 }
 
@@ -22,7 +23,7 @@ pub enum Relay8xCmdSet {
 
 
 impl Relay8xCmdSet {
-    pub fn encode(self, bytes: &mut BytesMut, address: u8, relays: Option<RelayIndex>) -> io::Result<()> {
+    pub fn encode(self, bytes: &mut BytesMut, address: u8, card: Option<u8>, relays: Option<&RelayIndex>) -> io::Result<()> {
         match self {
             Relay8xCmdSet::Init =>  {
                 let cmd = 1; // init command: 1
@@ -36,7 +37,7 @@ impl Relay8xCmdSet {
             Relay8xCmdSet::Set => {
                 let cmd = 6; // command for turning on: 6
                 bytes.put_u8(cmd);  // first byte: command
-                bytes.put_u8(address); // second byte: address of card
+                bytes.put_u8(address+card.unwrap_or(1)-1); // second byte: address of card
                 let relay_bin = Relay8xCmdSet::relay_as_u8(relays.unwrap());
                 debug!("Relays to set: {:08b}", relay_bin);
                 bytes.put_u8(relay_bin); // third byte: data of relays
@@ -47,7 +48,7 @@ impl Relay8xCmdSet {
             Relay8xCmdSet::Toggle => {
                 let cmd = 8; // command for turning on
                 bytes.put_u8(cmd);  // first byte: command
-                bytes.put_u8(address); // second byte: address of card
+                bytes.put_u8(address+card.unwrap_or(1)-1); // second byte: address of card
                 let relay_bin = Relay8xCmdSet::relay_as_u8(relays.unwrap());
                 debug!("Relays to set: {:08b}", relay_bin);
                 bytes.put_u8(relay_bin); // third byte: data of relays
@@ -58,7 +59,7 @@ impl Relay8xCmdSet {
             Relay8xCmdSet::Reset => {
                 let cmd = 7; // command for turning on
                 bytes.put_u8(cmd);
-                bytes.put_u8(address); // second byte: address of card
+                bytes.put_u8(address+card.unwrap_or(1)-1); // second byte: address of card
                 let relay_bin = Relay8xCmdSet::relay_as_u8(relays.unwrap());
                 debug!("Relays to set: {:08b}", relay_bin);
                 bytes.put_u8(relay_bin); // third byte: data of relays
@@ -70,7 +71,7 @@ impl Relay8xCmdSet {
          Ok(())
     }
 
-    fn relay_as_u8(vec: RelayIndex) -> u8 {
+    fn relay_as_u8(vec: &RelayIndex) -> u8 {
         let mut relay_bin = 0b00000000;
         vec.iter().rev().for_each(|x| {
             relay_bin |= (1 << (x-1)) as u8; // shift ones to the specified relays
@@ -81,6 +82,7 @@ impl Relay8xCmdSet {
     fn checksummed(x: &[u8]) -> u8 {
         x.iter().fold(0u8, |checksum, elem| {checksum ^ elem})
     }
+
 }
 
 impl Relay8x {
@@ -90,7 +92,7 @@ impl Relay8x {
         
         Ok(Self {
             port: Rc::new(::serial::open(&device_name)?),
-            address: address,
+            start_address: address,
         })
     }
 
@@ -103,9 +105,10 @@ impl Relay8x {
         
         // init relay card
         let mut cmd = BytesMut::with_capacity(4);
-        Relay8xCmdSet::encode(Relay8xCmdSet::Init, &mut cmd, self.address, None)?;
+        Relay8xCmdSet::encode(Relay8xCmdSet::Init, &mut cmd, self.start_address, None, None)?;
 
         port.write(&cmd[..])?;
+        debug!("Wrote init message..");
         port.read(&mut cmd[..])?;
         debug!("Response init: {:?}", &cmd);
         
@@ -132,65 +135,72 @@ impl Relay8x {
     /// switch arbitrary relays on
     /// numbers: Vector containing all relay numbers (1..8)
     /// state: true for switching on, false for off
-    pub fn set_relays(&mut self, numbers: Vec<u8>) -> io::Result<BytesMut> {
-        self.init_device()?;
+    pub fn set_relays(&mut self, cards: CardIndex, numbers: RelayIndex) -> io::Result<BytesMut> {
+        
         let port = Rc::get_mut(&mut self.port).unwrap();
+        let start_address = self.start_address;
         // with capacity makes it only working for current relay card, but it ensures the
         // right length
         let mut cmd = BytesMut::with_capacity(4);
 
-        Relay8xCmdSet::encode(Relay8xCmdSet::Set, &mut cmd, self.address, Some(numbers))?;
-
-        port.write(&cmd[..])?;
-        let sent_cmd = cmd.clone();
-        port.read(&mut cmd[..])?;
-        debug!("Set Relays response: {:?}", cmd);
-        Relay8x::check_response(&cmd, &sent_cmd)?;
+        for &card in cards.iter() {
+            Relay8xCmdSet::encode(Relay8xCmdSet::Set, &mut cmd, start_address, Some(card), Some(&numbers))?;
+            port.write(&cmd[..])?;
+            let sent_cmd = cmd.clone();
+            port.read(&mut cmd[..])?;
+            debug!("Set Relays response: {:?}", cmd);
+            Relay8x::check_response(&cmd, &sent_cmd, card)?;
+            cmd.clear();
+        }
         Ok(cmd)
     }
 
     /// switch arbitrary relays off
     /// numbers: Vector containing all relay numbers (1..8)
     /// state: true for switching on, false for off
-    pub fn reset_relays(&mut self, numbers: Vec<u8>) -> io::Result<BytesMut> {
-        self.init_device()?;
+    pub fn reset_relays(&mut self, cards: CardIndex, numbers: RelayIndex) -> io::Result<BytesMut> {
+        
         let port = Rc::get_mut(&mut self.port).unwrap();
+        let start_address = self.start_address;
         // with capacity makes it only working for current relay card, but it ensures the
         // right length
         let mut cmd = BytesMut::with_capacity(4);
 
-        Relay8xCmdSet::encode(Relay8xCmdSet::Reset, &mut cmd, self.address, Some(numbers))?;
-
-        port.write(&cmd[..])?;
-        let sent_cmd = cmd.clone();
-        port.read(&mut cmd[..])?;
-        debug!("Set Relays response: {:?}", cmd);
-        Relay8x::check_response(&cmd, &sent_cmd)?;
+        for &card in cards.iter() {
+            Relay8xCmdSet::encode(Relay8xCmdSet::Reset, &mut cmd, start_address, Some(card), Some(&numbers))?;
+            port.write(&cmd[..])?;
+            let sent_cmd = cmd.clone();
+            port.read(&mut cmd[..])?;
+            debug!("Set Relays response: {:?}", cmd);
+            Relay8x::check_response(&cmd, &sent_cmd, card)?;
+            cmd.clear();
+        }
         Ok(cmd)
     }
 
     /// toggle aribtrary relays
     /// numbers: vector containing all relay numbers (1..8)
-    pub fn toggle_relays(&mut self, numbers: Vec<u8>) -> io::Result<BytesMut> {
+    pub fn toggle_relays(&mut self, cards: CardIndex, numbers: RelayIndex) -> io::Result<BytesMut> {
 
-        self.init_device()?;
         let port = Rc::get_mut(&mut self.port).unwrap();
+        let start_address = self.start_address;
         // with capacity makes it only working for current relay card, but it ensures the
         // right length
         let mut cmd = BytesMut::with_capacity(4);
         
-        Relay8xCmdSet::encode(Relay8xCmdSet::Toggle, &mut cmd, self.address, Some(numbers))?;
-
-        port.write(&cmd[..])?;
-        let sent_cmd = cmd.clone();
-        port.read(&mut cmd[..])?;
-        debug!("Set Relays response: {:?}", cmd);
-        Relay8x::check_response(&cmd, &sent_cmd)?;
-        
+        for &card in cards.iter() {
+            Relay8xCmdSet::encode(Relay8xCmdSet::Toggle, &mut cmd, start_address, Some(card), Some(&numbers))?;
+            port.write(&cmd[..])?;
+            let sent_cmd = cmd.clone();
+            port.read(&mut cmd[..])?;
+            debug!("Set Relays response: {:?}", cmd);
+            Relay8x::check_response(&cmd, &sent_cmd, card)?;
+            cmd.clear();
+        }
         Ok(cmd)
     }
 
-    fn check_response(msg: & BytesMut, sent_msg: &BytesMut) -> io::Result<()> {
+    fn check_response(msg: & BytesMut, sent_msg: &BytesMut, card: u8) -> io::Result<()> {
         
         // check first byte
         let checker_byte = sent_msg.get(0).unwrap_or(&1);
@@ -199,8 +209,10 @@ impl Relay8x {
             return Err(Error::new(ErrorKind::Other, format!("Bad first byte: is {}, should be {}", checked_bytes, !checker_byte)))
         }
         // second byte: adress
-        if msg.get(1).unwrap_or(&0) != sent_msg.get(1).unwrap_or(&1) {
-            return Err(Error::new(ErrorKind::Other, format!("Wrong Adress: {}", msg.get(1).unwrap())))
+        let resp_addr = msg.get(1).unwrap_or(&0);
+        let sent_addr = sent_msg.get(1).unwrap_or(&1);
+        if resp_addr != &(sent_addr-card+1) {
+            return Err(Error::new(ErrorKind::Other, format!("Wrong Adress: 0x{:02x} instead of 0x{:02x}", resp_addr, sent_addr)))
         }
         // last byte: XOR
         if *msg.get(3).unwrap_or(&0) != (*msg.get(0).unwrap_or(&1) ^ *msg.get(1).unwrap_or(&0) ^ *msg.get(2).unwrap_or(&0)) {
@@ -220,7 +232,7 @@ mod test {
     fn connect_to_card() {    
         let mut relay = Relay8x::new(String::from("/dev/ttyUSB0"), 1).expect("Failed to connect to device");
         let init_response = relay.init_device().expect("Failed to init device");
-        let expected_res = BytesMut::from(vec![254, relay.address, 11, 254^relay.address^11]);
+        let expected_res = BytesMut::from(vec![254, relay.start_address, 11, 254^relay.start_address^11]);
         assert_eq!(init_response, expected_res);
     }
 
