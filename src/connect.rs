@@ -3,7 +3,7 @@ use std::io;
 use std::io::{Error, ErrorKind};
 use bytes::{BytesMut, BufMut};
 use std::rc::Rc;
-use std::{thread::sleep, time::Duration};
+use std::time::Duration;
 
 // type aliases for relay vecs and card vecs
 pub type RelayIndex = Vec<u8>;
@@ -129,17 +129,22 @@ impl Relay8x {
         port.write(&cmd[..])?;
         debug!("Wrote init message..");
         // in order to read all responses from all connected cards, we have to wait a couple of millis
-        sleep(Duration::from_millis(20));
+        //sleep(Duration::from_millis(20));
         // allocate a large ByteMut to get all responses into that buffer at once,
         // now it's enough for five cards
         let mut resp = BytesMut::new();
-        resp.put_u64_le(0);
-        resp.put_u64_le(0);
-        resp.put_u64_le(0);
-        port.read(&mut resp[..])?;
-        debug!("Response init: {:?}", &resp);
+        loop {
+            resp.put_u8(0);
+            port.read(&mut resp[..])?;
+            debug!("Response init: {:?}", &resp);
+            
+            if resp.contains(&9) {
+                break;
+            }
+        }
+
         // checks only the first answer since we know that there is one card for sure
-        Relay8x::check_response(&resp, &cmd)?;
+        //Relay8x::check_response(&resp, &cmd)?;
         Ok(cmd)
     }
 
