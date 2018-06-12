@@ -13,7 +13,7 @@ extern crate common_failures;
 extern crate failure;
 
 use docopt::Docopt;
-use common_failures::prelude::*;
+use common_failures::prelude::Result;
 
 mod connect;
 use connect::{CardIndex, Relay8x, RelayIndex};
