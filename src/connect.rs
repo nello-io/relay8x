@@ -112,7 +112,7 @@ impl Relay8x {
         let sent_cmd = cmd.clone();
         port.read(&mut cmd[..])?;
         debug!("Response init: {:?}", &cmd);
-        Relay8x::check_response(&cmd, &sent_cmd, 1)?;
+        Relay8x::check_response(&cmd, &sent_cmd)?;
         Ok(cmd)
     }
 
@@ -150,7 +150,7 @@ impl Relay8x {
             let sent_cmd = cmd.clone();
             port.read(&mut cmd[..])?;
             debug!("Set Relays response: {:?}", cmd);
-            Relay8x::check_response(&cmd, &sent_cmd, card)?;
+            Relay8x::check_response(&cmd, &sent_cmd)?;
             cmd.clear();
         }
         Ok(cmd)
@@ -173,7 +173,7 @@ impl Relay8x {
             let sent_cmd = cmd.clone();
             port.read(&mut cmd[..])?;
             debug!("Set Relays response: {:?}", cmd);
-            Relay8x::check_response(&cmd, &sent_cmd, card)?;
+            Relay8x::check_response(&cmd, &sent_cmd)?;
             cmd.clear();
         }
         Ok(cmd)
@@ -195,13 +195,13 @@ impl Relay8x {
             let sent_cmd = cmd.clone();
             port.read(&mut cmd[..])?;
             debug!("Set Relays response: {:?}", cmd);
-            Relay8x::check_response(&cmd, &sent_cmd, card)?;
+            Relay8x::check_response(&cmd, &sent_cmd)?;
             cmd.clear();
         }
         Ok(cmd)
     }
 
-    fn check_response(msg: & BytesMut, sent_msg: &BytesMut, card: u8) -> io::Result<()> {
+    fn check_response(msg: & BytesMut, sent_msg: &BytesMut) -> io::Result<()> {
         
         // check first byte
         let checker_byte = sent_msg.get(0).unwrap_or(&1);
