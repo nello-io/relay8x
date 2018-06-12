@@ -109,9 +109,10 @@ impl Relay8x {
 
         port.write(&cmd[..])?;
         debug!("Wrote init message..");
+        let sent_cmd = cmd.clone();
         port.read(&mut cmd[..])?;
         debug!("Response init: {:?}", &cmd);
-        
+        Relay8x::check_response(&cmd, &sent_cmd, 1)?;
         Ok(cmd)
     }
 
