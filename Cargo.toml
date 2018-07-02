@@ -1,16 +1,23 @@
 [package]
-name = "relay8x"
+name = "relay8x-lib"
 version = "0.1.0"
 authors = ["Korbinian Maier <korbinian.maier@tum.de>"]
 
 [dependencies]
+bytes = "0.4.8"
 serial = "0.4.0"
+log = "0.4.1"
+
 docopt = "1.0.0"
 env_logger = "0.5.10"
 serde = "1.0.66"
 serde_derive = "1.0.66"
-bytes = "0.4.8"
-serial-unix = "0.4.0"
-log = "0.4.1"
-common_failures = "0.1.1"
-failure = "0.1.1"
+#failure = "0.1.1"
+
+[lib]
+name = "relay8x_lib"
+path = "src/lib.rs"
+
+[[bin]]
+name = "relay8x"
+path = "src/bin/main.rs"
