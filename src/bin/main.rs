@@ -4,9 +4,11 @@ extern crate env_logger;
 extern crate serde;
 #[macro_use]
 extern crate serde_derive;
+// #[macro_use]
+// extern crate failure;
 
 use docopt::Docopt;
-use std::{thread::sleep, time::Duration};
+use std::{io, thread::sleep, time::Duration};
 
 use relay8x_lib::{CardIndex, Relay8x, RelayIndex};
 
@@ -49,7 +51,7 @@ struct Args {
 const VERSION: &'static str = env!("CARGO_PKG_VERSION");
 const NAME: &'static str = env!("CARGO_PKG_NAME");
 
-fn main() {
+fn main() -> io::Result<()> {
     env_logger::init();
 
     let args: Args = Docopt::new(USAGE)
@@ -59,12 +61,14 @@ fn main() {
     // check arguments
     if args.flag_version {
         println!("{}: {}", NAME, VERSION);
+        Ok(())
     } else if args.flag_help {
         println!("{}", USAGE);
+        Ok(())
     } else if args.cmd_set {
         // open device, address of relay is always 1 as for now
-        let mut relay = Relay8x::new(args.flag_dev, 1).expect("Failed to create new device");
-        relay.init_device().expect("Failed to init device");
+        let mut relay = Relay8x::new(args.flag_dev, 1)?;
+        relay.init_device()?;
         // wait to give cards time to answer
         sleep(Duration::from_millis(10));
         // if flag_relay is none, all relays should be set
@@ -73,15 +77,16 @@ fn main() {
         let card_numbers = args.flag_card.unwrap_or_default();
         // map state argument to set or reset
         match args.arg_state.as_ref() {
-            "on" => relay.set_relays(card_numbers, relay_numbers).expect("Failed to set relay"),
-            "off" => relay.reset_relays(card_numbers, relay_numbers).expect("Failed to set relay"),
-            _ => relay.reset_relays(card_numbers, relay_numbers).expect("Failed to set relay"),
+            "on" => relay.set_relays(card_numbers, relay_numbers)?,
+            "off" => relay.reset_relays(card_numbers, relay_numbers)?,
+            _ => return Err(io::Error::new(io::ErrorKind::Other, "Failed to determine state, use 'on' or 'off'.")),
         };
+        Ok(())
 
     } else if args.cmd_toggle {
         // open device
-        let mut relay = Relay8x::new(args.flag_dev, 1).expect("Failed to create device");
-        relay.init_device().expect("Failed to init device");
+        let mut relay = Relay8x::new(args.flag_dev, 1)?;
+        relay.init_device()?;
         // wait to give cards time to answer
         sleep(Duration::from_millis(10));
         // if flag is none, all relays should be toggeled
@@ -89,11 +94,12 @@ fn main() {
         // if flag_card is none, all cards should be set
         let card_numbers = args.flag_card.unwrap_or_default();
         // do the toggle
-        relay.toggle_relays(card_numbers, relay_numbers).expect("Failed to toggle relay");
+        relay.toggle_relays(card_numbers, relay_numbers)?;
+        Ok(())
     } else if args.cmd_reset {
         // open device
-        let mut relay = Relay8x::new(args.flag_dev, 1).expect("Failed to create device");
-        relay.init_device().expect("Failed to init device");
+        let mut relay = Relay8x::new(args.flag_dev, 1)?;
+        relay.init_device()?;
         // wait to give cards time to answer
         sleep(Duration::from_millis(10));
         // if flag is none, all relays should be reset
@@ -101,9 +107,11 @@ fn main() {
         // if flag_card is none, all cards should be set
         let card_numbers = args.flag_card.unwrap_or_default();
         // do the switching, false = off
-        relay.reset_relays(card_numbers, relay_numbers).expect("Failed to reset relay");
+        relay.reset_relays(card_numbers, relay_numbers)?;
+        Ok(())
     } else {
         println!("I don't know what you want to do..");
+        Ok(())
     }
 }
 
