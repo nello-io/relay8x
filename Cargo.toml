@@ -1,5 +1,5 @@
 [package]
-name = "relay8x-lib"
+name = "relay8x"
 version = "0.1.0"
 authors = ["Korbinian Maier <korbinian.maier@tum.de>"]
 
@@ -12,12 +12,9 @@ docopt = "1.0.0"
 env_logger = "0.5.10"
 serde = "1.0.66"
 serde_derive = "1.0.66"
-# failure = "0.1.1"
-# breaks compilation for other targets than x86_64
-#common_failures = "0.1.1"
 
 [lib]
-name = "relay8x_lib"
+name = "relay8x"
 path = "src/lib.rs"
 
 [[bin]]
