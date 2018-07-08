@@ -1,4 +1,4 @@
-extern crate relay8x_lib;
+extern crate relay8x;
 extern crate docopt;
 extern crate env_logger;
 extern crate serde;
@@ -10,7 +10,7 @@ extern crate serde_derive;
 use docopt::Docopt;
 use std::{io, thread::sleep, time::Duration};
 
-use relay8x_lib::{CardIndex, Relay8x, RelayIndex};
+use relay8x::{CardIndex, Relay8x, RelayIndex};
 
 const USAGE: &'static str = "
 relay8x
