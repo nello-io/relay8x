@@ -125,10 +125,20 @@ impl Relay8x {
     /// initialise device with correct params
     /// 
     /// sets device address, function can be used to re-set it
-    pub fn init_device(&mut self) -> io::Result<BytesMut> {
+    pub fn configure_device(&mut self) -> io::Result<BytesMut> {
 
         let port = Rc::get_mut(&mut self.port).unwrap();
-        Relay8x::configure_device(port)?;
+        // configure interface with its params, see doc of relay card
+        port.reconfigure(&|settings| {
+            settings.set_baud_rate(::serial::Baud19200)?;
+            settings.set_char_size(::serial::Bits8);
+            settings.set_parity(::serial::ParityNone);
+            settings.set_stop_bits(::serial::Stop1);
+            settings.set_flow_control(::serial::FlowNone);
+            Ok(())
+        })?;
+
+        port.set_timeout(Duration::from_millis(1000))?;
         
         // init relay card
         let mut cmd = BytesMut::with_capacity(4);
@@ -151,23 +161,6 @@ impl Relay8x {
         }
 
         Ok(cmd)
-    }
-
-    /// private function for port settings
-    fn configure_device(port: &mut SerialPort) -> io::Result<()> {
-        // configure interface with its params, see doc of relay card
-        port.reconfigure(&|settings| {
-            settings.set_baud_rate(::serial::Baud19200)?;
-            settings.set_char_size(::serial::Bits8);
-            settings.set_parity(::serial::ParityNone);
-            settings.set_stop_bits(::serial::Stop1);
-            settings.set_flow_control(::serial::FlowNone);
-            Ok(())
-        })?;
-
-        port.set_timeout(Duration::from_millis(1000))?;
-        
-        Ok(())
     }
 
     /// switch arbitrary relays on
