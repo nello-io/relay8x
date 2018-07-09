@@ -10,10 +10,12 @@ use bytes::{BytesMut, BufMut};
 use std::rc::Rc;
 use std::time::{Duration, Instant};
 
-// type aliases for relay vecs and card vecs
+/// type alias for relay vecs
 pub type RelayIndex = Vec<u8>;
+/// type alias for card index vecs
 pub type CardIndex = Vec<u8>;
 
+/// Provides access to serial port
 pub struct Relay8x {
     // address of the first card, succeding card has +1 and so on
     start_address: u8,
@@ -121,6 +123,7 @@ impl Relay8x {
     }
 
     /// initialise device with correct params
+    /// 
     /// sets device address, function can be used to re-set it
     pub fn init_device(&mut self) -> io::Result<BytesMut> {
 
@@ -168,8 +171,9 @@ impl Relay8x {
     }
 
     /// switch arbitrary relays on
-    /// numbers: Vector containing all relay numbers (1..8)
-    /// state: true for switching on, false for off
+    /// 
+    /// - numbers: Vector containing all relay numbers (1..8)
+    /// - state: true for switching on, false for off
     pub fn set_relays(&mut self, cards: CardIndex, numbers: RelayIndex) -> io::Result<BytesMut> {
         
         let port = Rc::get_mut(&mut self.port).unwrap();
@@ -191,8 +195,9 @@ impl Relay8x {
     }
 
     /// switch arbitrary relays off
-    /// numbers: Vector containing all relay numbers (1..8)
-    /// state: true for switching on, false for off
+    /// 
+    /// - numbers: Vector containing all relay numbers (1..8)
+    /// - state: true for switching on, false for off
     pub fn reset_relays(&mut self, cards: CardIndex, numbers: RelayIndex) -> io::Result<BytesMut> {
         
         let port = Rc::get_mut(&mut self.port).unwrap();
@@ -214,6 +219,7 @@ impl Relay8x {
     }
 
     /// toggle aribtrary relays
+    /// 
     /// numbers: vector containing all relay numbers (1..8)
     pub fn toggle_relays(&mut self, cards: CardIndex, numbers: RelayIndex) -> io::Result<BytesMut> {
 
@@ -235,6 +241,7 @@ impl Relay8x {
         Ok(cmd)
     }
 
+    /// simple response checker of recieved frame
     fn check_response(msg: & BytesMut, sent_msg: &BytesMut) -> io::Result<()> {
         
         // check first byte
