@@ -69,8 +69,6 @@ fn main() -> io::Result<()> {
         // open device, address of relay is always 1 as for now
         let mut relay = Relay8x::new(args.flag_dev, 1)?;
         relay.init_device()?;
-        // wait to give cards time to answer
-        sleep(Duration::from_millis(10));
         // if flag_relay is none, all relays should be set
         let relay_numbers = args.flag_relay.unwrap_or_default();
         // if flag_card is none, all cards should be set
