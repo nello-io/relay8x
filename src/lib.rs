@@ -7,7 +7,6 @@ use serial::prelude::*;
 use std::io;
 use std::io::{Error, ErrorKind};
 use bytes::{BytesMut, BufMut};
-use std::rc::Rc;
 use std::time::{Duration, Instant};
 
 /// type alias for relay vecs
@@ -20,7 +19,7 @@ pub struct Relay8x {
     // address of the first card, succeding card has +1 and so on
     start_address: u8,
     // struct containing the serial port settings and stuff
-    port: Rc<SerialPort>,
+    port: Box<SerialPort>,
 }
 
 /// enum for all possbile commands
@@ -114,10 +113,10 @@ impl Relay8xCmdSet {
 impl Relay8x {
 
     /// constructor for a new Relay Card
-    pub fn new(device_name: String, address: u8) -> io::Result<Self> {
-        
+    pub fn new(device_name: &str, address: u8) -> Result<Self,io::Error> {
+        let port = ::serial::open(device_name)?;
         Ok(Self {
-            port: Rc::new(::serial::open(&device_name)?),
+            port : Box::new(port),
             start_address: address,
         })
     }
@@ -127,7 +126,7 @@ impl Relay8x {
     /// sets device address, function can be used to re-set it
     pub fn configure_device(&mut self) -> io::Result<BytesMut> {
 
-        let port = Rc::get_mut(&mut self.port).unwrap();
+        let port = &mut self.port;
         // configure interface with its params, see doc of relay card
         port.reconfigure(&|settings| {
             settings.set_baud_rate(::serial::Baud19200)?;
@@ -169,7 +168,7 @@ impl Relay8x {
     /// - state: true for switching on, false for off
     pub fn set_relays(&mut self, cards: CardIndex, numbers: RelayIndex) -> io::Result<BytesMut> {
         
-        let port = Rc::get_mut(&mut self.port).unwrap();
+        let port = &mut self.port;
         let start_address = self.start_address;
         // with capacity makes it only working for current relay card, but it ensures the
         // right length
@@ -193,7 +192,7 @@ impl Relay8x {
     /// - state: true for switching on, false for off
     pub fn reset_relays(&mut self, cards: CardIndex, numbers: RelayIndex) -> io::Result<BytesMut> {
         
-        let port = Rc::get_mut(&mut self.port).unwrap();
+        let port = &mut self.port;
         let start_address = self.start_address;
         // with capacity makes it only working for current relay card, but it ensures the
         // right length
@@ -216,7 +215,7 @@ impl Relay8x {
     /// numbers: vector containing all relay numbers (1..8)
     pub fn toggle_relays(&mut self, cards: CardIndex, numbers: RelayIndex) -> io::Result<BytesMut> {
 
-        let port = Rc::get_mut(&mut self.port).unwrap();
+        let port = &mut self.port;
         let start_address = self.start_address;
         // with capacity makes it only working for current relay card, but it ensures the
         // right length
