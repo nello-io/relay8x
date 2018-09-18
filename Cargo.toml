@@ -1,17 +1,23 @@
 [package]
 name = "relay8x"
 version = "0.1.0"
-authors = ["Korbinian Maier <korbinian.maier@tum.de>"]
+authors = ["Korbinian Maier <korbinian.maier@tum.de>", "Bernhard Schuster <bernhard@ahoi.io>"]
+description = "control a specific 8x relaise card via serial / USB"
+readme = "README.md"
+license = "Apache-2.0 OR MIT"
+keywords = ["relaise","relay","hardware","switch"]
+categories = ["command-line-utilities","development-tools::testing","embedded","parser-implementations"]
+homepage = "https://ahoi.io/project/relay8x"
+repository = "https://github.com/nello-io/relay8x"
 
 [dependencies]
-bytes = "0.4.8"
-serial = "0.4.0"
-log = "0.4.1"
-
-docopt = "1.0.0"
-env_logger = "0.5.10"
-serde = "1.0.66"
-serde_derive = "1.0.66"
+bytes = "0.4"
+serial = "0.4"
+log = "0.4"
+docopt = "1.0"
+env_logger = "0.5"
+serde = "1.0"
+serde_derive = "1.0"
 
 [lib]
 name = "relay8x"

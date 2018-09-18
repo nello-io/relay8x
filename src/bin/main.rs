@@ -1,6 +1,6 @@
-extern crate relay8x;
 extern crate docopt;
 extern crate env_logger;
+extern crate relay8x;
 extern crate serde;
 #[macro_use]
 extern crate serde_derive;
@@ -77,10 +77,14 @@ fn main() -> io::Result<()> {
         match args.arg_state.as_ref() {
             "on" => relay.set_relays(card_numbers, relay_numbers)?,
             "off" => relay.reset_relays(card_numbers, relay_numbers)?,
-            _ => return Err(io::Error::new(io::ErrorKind::Other, "Failed to determine state, use 'on' or 'off'.")),
+            _ => {
+                return Err(io::Error::new(
+                    io::ErrorKind::Other,
+                    "Failed to determine state, use 'on' or 'off'.",
+                ))
+            }
         };
         Ok(())
-
     } else if args.cmd_toggle {
         // open device
         let mut relay = Relay8x::new(args.flag_dev.as_str(), 1)?;
@@ -112,4 +116,3 @@ fn main() -> io::Result<()> {
         Ok(())
     }
 }
-
