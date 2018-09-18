@@ -10,6 +10,9 @@ categories = ["command-line-utilities","development-tools::testing","embedded","
 homepage = "https://ahoi.io/project/relay8x"
 repository = "https://github.com/nello-io/relay8x"
 
+[badges]
+maintenance = { status : "passively-maintained" }
+
 [dependencies]
 bytes = "0.4"
 serial = "0.4"
