@@ -11,7 +11,7 @@ homepage = "https://ahoi.io/project/relay8x"
 repository = "https://github.com/nello-io/relay8x"
 
 [badges]
-maintenance = { status : "passively-maintained" }
+maintenance = { status = "passively-maintained" }
 
 [dependencies]
 bytes = "0.4"
