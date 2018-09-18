@@ -1,6 +1,6 @@
 [package]
 name = "relay8x"
-version = "0.1.0"
+version = "0.1.1"
 authors = ["Korbinian Maier <korbinian.maier@tum.de>", "Bernhard Schuster <bernhard@ahoi.io>"]
 description = "control a specific 8x relaise card via serial / USB"
 readme = "README.md"
