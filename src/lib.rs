@@ -166,10 +166,10 @@ impl Relay8x {
         port.write(&cmd[..])?;
         debug!("Wrote init message..");
         let mut resp = BytesMut::new();
+        resp.put_u32_le(0);
         let now = Instant::now();
         // read until last card has responded
         loop {
-            resp.put_u32_le(0);
             port.read(&mut resp[..])?;
             debug!(
                 "Response init: {:02x} {:02x} {:02x} {:02x}",
@@ -328,8 +328,8 @@ mod test {
     #[test]
     fn connect_to_card() {
         let mut relay =
-            Relay8x::new(String::from("/dev/ttyUSB0"), 1).expect("Failed to connect to device");
-        let init_response = relay.init_device().expect("Failed to init device");
+            Relay8x::new(&"/dev/ttyUSB0".to_string(), 1).expect("Failed to connect to device");
+        let init_response = relay.configure_device().expect("Failed to init device");
         let expected_res = BytesMut::from(vec![
             254,
             relay.start_address,
