@@ -8,7 +8,7 @@ extern crate serde_derive;
 // extern crate failure;
 
 use docopt::Docopt;
-use std::{io, thread::sleep, time::Duration};
+use std::io;
 
 use relay8x::{CardIndex, Relay8x, RelayIndex};
 
