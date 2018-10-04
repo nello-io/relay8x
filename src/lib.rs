@@ -327,16 +327,19 @@ mod test {
 
     #[test]
     fn connect_to_card() {
+        let device = if cfg!(unix) {
+            "/dev/ttyUSB0".to_string()
+        } else if cfg!(windows) {
+            "COM5".to_string()
+        } else {
+            panic!("Could not determine platform");
+        };
+
         let mut relay =
-            Relay8x::new(&"/dev/ttyUSB0".to_string(), 1).expect("Failed to connect to device");
-        let init_response = relay.configure_device().expect("Failed to init device");
-        let expected_res = BytesMut::from(vec![
-            254,
-            relay.start_address,
-            11,
-            254 ^ relay.start_address ^ 11,
-        ]);
-        assert_eq!(init_response, expected_res);
+            Relay8x::new(&device, 1).expect("Failed to connect to device");
+        let init_cmd = relay.configure_device().expect("Failed to init device");
+        
+
     }
 
 }
