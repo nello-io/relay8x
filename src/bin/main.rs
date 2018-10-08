@@ -4,11 +4,12 @@ extern crate relay8x;
 extern crate serde;
 #[macro_use]
 extern crate serde_derive;
-// #[macro_use]
-// extern crate failure;
+#[macro_use]
+extern crate failure;
 
 use docopt::Docopt;
 use std::io;
+use std::env::var;
 
 use relay8x::{CardIndex, Relay8x, RelayIndex};
 
@@ -16,21 +17,21 @@ const USAGE: &'static str = "
 relay8x
 
 Usage:
-  relay8x set --dev=<dev> [--card=<card> ...] [--relay=<relay> ...] <state>
-  relay8x toggle --dev=<dev> [--card=<card> ...] [--relay=<relay> ...]
-  relay8x reset --dev=<dev> [--card=<card> ...] [--relay=<relay> ...]
+  relay8x set [--dev=<dev>] [--card=<card> ...] [--relay=<relay> ...] <state>
+  relay8x toggle [--dev=<dev>] [--card=<card> ...] [--relay=<relay> ...]
+  relay8x reset [--dev=<dev>] [--card=<card> ...] [--relay=<relay> ...]
   relay8x (-h | --help)
   relay8x (-v | --version)
   
 Commands:
-  set   set specified relay 'on' or 'off', if no relay number is given all relays are set
+  set       set specified relay 'on' or 'off', if no relay number is given all relays are set
   toggle    toggle specified relay,  if no relay number is given all relays are toggeled
-  reset switch all or just one relay off to reach defined state again
+  reset     switch all or just one relay off to reach defined state again
 
 Options:
   -h --help         Show this screen.
   -v --version      Show version.
-  --dev=<dev>       path to serial device, e.g. /dev/ttyUSB0
+  --dev=<dev>       optional path to serial device, overrides the env var DEVICE
   --relay=<relay>   number of relays (1..8), one flag per relay [default: 1 2 3 4 5 6 7 8]
   --card=<card>     number of card (1..x), one flag per card [default: 0]
 ";
@@ -40,7 +41,7 @@ struct Args {
     cmd_set: bool,
     cmd_toggle: bool,
     cmd_reset: bool,
-    flag_dev: String,
+    flag_dev: Option<String>,
     flag_version: bool,
     flag_help: bool,
     flag_relay: Option<RelayIndex>,
@@ -58,6 +59,14 @@ fn main() -> io::Result<()> {
         .and_then(|d| d.deserialize())
         .unwrap_or_else(|e| e.exit());
 
+    let env_dev = var("DEVICE");
+    // get the device path from flag, if its not set, check the env var
+    // device, if not set, return an error
+    let device = match args.flag_dev {
+            Some(path) => Ok(path),
+            None => env_dev.map_err(|_| io::Error::new(io::ErrorKind::Other,"Failed to determine device, use env var DEVICE or flag --dev",)),
+    }?;
+
     // check arguments
     if args.flag_version {
         println!("{}: {}", NAME, VERSION);
@@ -67,7 +76,7 @@ fn main() -> io::Result<()> {
         Ok(())
     } else if args.cmd_set {
         // open device, address of relay is always 1 as for now
-        let mut relay = Relay8x::new(args.flag_dev.as_str(), 1)?;
+        let mut relay = Relay8x::new(device.as_str(), 1)?;
         relay.configure_device()?;
         // if flag_relay is none, all relays should be set
         let relay_numbers = args.flag_relay.unwrap_or_default();
@@ -87,7 +96,7 @@ fn main() -> io::Result<()> {
         Ok(())
     } else if args.cmd_toggle {
         // open device
-        let mut relay = Relay8x::new(args.flag_dev.as_str(), 1)?;
+        let mut relay = Relay8x::new(device.as_str(), 1)?;
         relay.configure_device()?;
         // if flag is none, all relays should be toggeled
         let relay_numbers = args.flag_relay.unwrap_or_default();
@@ -98,7 +107,7 @@ fn main() -> io::Result<()> {
         Ok(())
     } else if args.cmd_reset {
         // open device
-        let mut relay = Relay8x::new(args.flag_dev.as_str(), 1)?;
+        let mut relay = Relay8x::new(device.as_str(), 1)?;
         relay.configure_device()?;
         // if flag is none, all relays should be reset
         let relay_numbers = args.flag_relay.unwrap_or_default();
