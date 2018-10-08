@@ -12,6 +12,15 @@ Install the binary use `cargo install relay8x` and read `relay8x --help` for det
 - [x] multiple cards on one serial device
 - [ ] run custom command
 
+## Usage
+
+Specify the device name in the environmental variable `DEVICE`:
+
+- Linux/MacOs: `export DEVICE=/dev/ttyX`
+- Windows: `set DEVICE=COMX`
+
+Replace `X` with the actual port name. In addition there's an optional flag `--dev=<dev>` to override the env var. For commands and options use `relay8x --help`.
+
 ## Documentation
 
 details about communication protocol are in this [pdf](DOC_8FACH_RELAISKARTE_24V_7A_de_en_fr_nl.pdf)
