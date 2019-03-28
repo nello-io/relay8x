@@ -340,6 +340,9 @@ mod test {
         while let Err(_) = Relay8x::new(&dev, 1) {
             i = i+1;
             dev = format!("{}{}", &device, &i);
+            if i > 10 {
+                panic!("Failed to init device: Found none");
+            }
         };
 
         println!("Detected device at {}", &dev);
