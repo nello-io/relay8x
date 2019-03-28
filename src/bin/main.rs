@@ -7,8 +7,8 @@ extern crate serde_derive;
 extern crate failure;
 
 use docopt::Docopt;
-use std::io;
 use std::env::var;
+use std::io;
 
 use relay8x::{CardIndex, Relay8x, RelayIndex};
 
@@ -62,8 +62,13 @@ fn main() -> io::Result<()> {
     // get the device path from flag, if its not set, check the env var
     // device, if not set, return an error
     let device = match args.flag_dev {
-            Some(path) => Ok(path),
-            None => env_dev.map_err(|_| io::Error::new(io::ErrorKind::Other,"Failed to determine device, use env var DEVICE or flag --dev",)),
+        Some(path) => Ok(path),
+        None => env_dev.map_err(|_| {
+            io::Error::new(
+                io::ErrorKind::Other,
+                "Failed to determine device, use env var DEVICE or flag --dev",
+            )
+        }),
     }?;
 
     // check arguments
@@ -89,7 +94,7 @@ fn main() -> io::Result<()> {
                 return Err(io::Error::new(
                     io::ErrorKind::Other,
                     "Failed to determine state, use 'on' or 'off'.",
-                ))
+                ));
             }
         };
         Ok(())
