@@ -338,15 +338,16 @@ mod test {
         let mut i = 0;
         let mut dev = format!("{}{}", &device, &i);
         while let Err(_) = Relay8x::new(&dev, 1) {
-            i = i+1;
+            i = i + 1;
             dev = format!("{}{}", &device, &i);
-            if i > 10 {
+            if i > 256 {
+                // number of COM ports on win
                 panic!("Failed to init device: Found none");
             }
-        };
+        }
 
         println!("Detected device at {}", &dev);
-        let mut relay = Relay8x::new(&dev,1).expect("Failed to init device");
+        let mut relay = Relay8x::new(&dev, 1).expect("Failed to init device");
         let _init_cmd = relay.configure_device().expect("Failed to init device");
     }
 
